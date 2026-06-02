@@ -1,0 +1,285 @@
+import type {
+  BackgroundConfig,
+  TitleConfig,
+  DeviceConfig,
+  TemplateId,
+  DeviceFrameType,
+  DeviceFrameStyle,
+} from '@/types';
+
+export type RecipeRole = 'hero' | 'use-case' | 'differentiator' | 'secondary' | 'proof' | 'cta';
+
+export interface StarterKitSlide {
+  template: TemplateId;
+  title: string;
+  subtitle?: string;
+  showSubtitle?: boolean;
+  role?: RecipeRole;
+  titleOverride?: Partial<TitleConfig>;
+}
+
+export const RECIPE_ROLES: { id: RecipeRole; label: string; hint: string }[] = [
+  { id: 'hero', label: 'Hero', hint: 'Headline + product hero. Must work as a thumbnail.' },
+  { id: 'use-case', label: 'Use case', hint: 'The main thing your app does.' },
+  { id: 'differentiator', label: 'Differentiator', hint: 'Why your app is different.' },
+  { id: 'secondary', label: 'Feature', hint: 'A secondary feature worth showing.' },
+  { id: 'proof', label: 'Social proof', hint: 'Awards, ratings, user count.' },
+  { id: 'cta', label: 'CTA', hint: 'Closing nudge to download.' },
+];
+
+export interface StarterKit {
+  id: string;
+  name: string;
+  tagline: string;
+  background: BackgroundConfig;
+  title: Pick<TitleConfig, 'fontFamily' | 'fontSize' | 'fontWeight' | 'color' | 'subtitleColor' | 'subtitleFontSize' | 'alignment'>;
+  device: { frameType: DeviceFrameType; frameStyle: DeviceFrameStyle; scale: number };
+  slides: StarterKitSlide[];
+  // Color used in the gallery card preview
+  swatch: string;
+}
+
+export const STARTER_KITS: StarterKit[] = [
+  {
+    id: 'norte',
+    name: 'Norte',
+    tagline: 'Indigo gradient · Sora bold',
+    swatch: '#5B5FED',
+    background: {
+      type: 'linear-gradient',
+      gradientStops: [
+        { color: '#5B5FED', position: 0 },
+        { color: '#818CF8', position: 100 },
+      ],
+      gradientAngle: 135,
+      presetId: 'norte-indigo',
+    },
+    title: {
+      fontFamily: 'Sora',
+      fontSize: 40,
+      fontWeight: 700,
+      color: '#FFFFFF',
+      subtitleColor: '#FFFFFFCC',
+      subtitleFontSize: 18,
+      alignment: 'center',
+    },
+    device: { frameType: 'iphone-15', frameStyle: 'real-dark', scale: 90 },
+    slides: [
+      { role: 'hero', template: 'hero', title: 'Build something\nbeautiful.', subtitle: 'A short tagline that explains what your app does.', showSubtitle: true },
+      { role: 'use-case', template: 'feature', title: 'One tap.\nEverything synced.', subtitle: 'Designed for focus.', showSubtitle: true },
+      { role: 'differentiator', template: 'centered', title: 'Made for\nevery day.' },
+      { role: 'secondary', template: 'feature', title: 'Smart shortcuts\nthat learn.', subtitle: 'Less clutter, more clarity.', showSubtitle: true },
+      { role: 'proof', template: 'social-proof', title: 'Loved by\nthousands.', subtitle: '4.9 average rating.', showSubtitle: true },
+    ],
+  },
+  {
+    id: 'vanta-mono',
+    name: 'Vanta Mono',
+    tagline: 'Pure black · italic serif',
+    swatch: '#0A0A0A',
+    background: { type: 'solid', solidColor: '#0A0A0A' },
+    title: {
+      fontFamily: 'Bricolage Grotesque',
+      fontSize: 36,
+      fontWeight: 500,
+      color: '#FFFFFF',
+      subtitleColor: '#A8A8A8',
+      subtitleFontSize: 16,
+      alignment: 'center',
+    },
+    device: { frameType: 'iphone-15', frameStyle: 'real-dark', scale: 88 },
+    slides: [
+      { role: 'hero', template: 'hero', title: 'Join thousands\nusing the app' },
+      { role: 'use-case', template: 'centered', title: 'Simple\nautomatic flow' },
+      { role: 'differentiator', template: 'centered', title: 'Use AI tools\nfor every task' },
+      { role: 'secondary', template: 'centered', title: 'Create your\nApp Store screenshots' },
+      { role: 'secondary', template: 'centered', title: 'Release\nfaster than ever' },
+      { role: 'proof', template: 'social-proof', title: 'Trusted by\n10,000+ teams' },
+    ],
+  },
+  {
+    id: 'mono-light',
+    name: 'Mono Light',
+    tagline: 'Cream · bold black headlines',
+    swatch: '#F5F0E8',
+    background: { type: 'solid', solidColor: '#F5F0E8' },
+    title: {
+      fontFamily: 'Sora',
+      fontSize: 44,
+      fontWeight: 800,
+      color: '#1A1917',
+      subtitleColor: '#4A4845',
+      subtitleFontSize: 18,
+      alignment: 'left',
+    },
+    device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 88 },
+    slides: [
+      { role: 'hero', template: 'feature', title: 'Built for\ncomplex routines.', subtitle: 'One tap to log everything.', showSubtitle: true },
+      { role: 'use-case', template: 'feature', title: 'Track your day,\nyour way.', subtitle: 'Morning, walk, night.', showSubtitle: true },
+      { role: 'differentiator', template: 'centered', title: 'Made simple\nfor real life.' },
+      { role: 'secondary', template: 'feature', title: 'Symptoms,\nsleep, mood.', subtitle: 'All in one timeline.', showSubtitle: true },
+      { role: 'proof', template: 'social-proof', title: 'Trusted by\n100K+ users.' },
+    ],
+  },
+  {
+    id: 'sunrise',
+    name: 'Sunrise',
+    tagline: 'Warm orange → pink',
+    swatch: '#F59E0B',
+    background: {
+      type: 'linear-gradient',
+      gradientStops: [
+        { color: '#F43F5E', position: 0 },
+        { color: '#F59E0B', position: 100 },
+      ],
+      gradientAngle: 135,
+    },
+    title: {
+      fontFamily: 'Plus Jakarta Sans',
+      fontSize: 40,
+      fontWeight: 800,
+      color: '#FFFFFF',
+      subtitleColor: '#FFFFFFD9',
+      subtitleFontSize: 18,
+      alignment: 'center',
+    },
+    device: { frameType: 'iphone-15', frameStyle: 'real-dark', scale: 92 },
+    slides: [
+      { role: 'hero', template: 'hero', title: 'Catch every\nmoment.', subtitle: 'Bright, fast, and unmistakably you.', showSubtitle: true },
+      { role: 'use-case', template: 'split', title: 'Stay\nahead.', subtitle: 'Today, tomorrow, and beyond.', showSubtitle: true },
+      { role: 'differentiator', template: 'centered', title: 'Designed to\ndelight.' },
+      { role: 'secondary', template: 'feature', title: 'Crafted with\nlove.', subtitle: 'Every pixel intentional.', showSubtitle: true },
+      { role: 'proof', template: 'social-proof', title: 'Featured by\nthe Editors.', subtitle: 'Top rated worldwide.', showSubtitle: true },
+    ],
+  },
+  {
+    id: 'ocean-pro',
+    name: 'Ocean Pro',
+    tagline: 'Deep blue · vivid accents',
+    swatch: '#0EA5E9',
+    background: {
+      type: 'linear-gradient',
+      gradientStops: [
+        { color: '#0C4A6E', position: 0 },
+        { color: '#0EA5E9', position: 100 },
+      ],
+      gradientAngle: 160,
+    },
+    title: {
+      fontFamily: 'Montserrat',
+      fontSize: 42,
+      fontWeight: 800,
+      color: '#FFFFFF',
+      subtitleColor: '#FDE68A',
+      subtitleFontSize: 18,
+      alignment: 'center',
+    },
+    device: { frameType: 'iphone-15', frameStyle: 'real-dark', scale: 90 },
+    slides: [
+      { role: 'hero', template: 'hero', title: 'FISH SMARTER\nSTAY AHEAD' },
+      { role: 'use-case', template: 'hero', title: 'BEST SPOTS\nNEAR YOU' },
+      { role: 'differentiator', template: 'hero', title: 'LIVE WEATHER\nUPDATES' },
+      { role: 'secondary', template: 'hero', title: 'DEPTH CHARTS\n& MAPS' },
+      { role: 'secondary', template: 'hero', title: 'LIVE FISH\nACTIVITY' },
+      { role: 'proof', template: 'social-proof', title: '1,000,000+\nANGLERS' },
+    ],
+  },
+  {
+    id: 'sky-bright',
+    name: 'Sky Bright',
+    tagline: 'Cyan · friendly + bold',
+    swatch: '#38BDF8',
+    background: {
+      type: 'linear-gradient',
+      gradientStops: [
+        { color: '#38BDF8', position: 0 },
+        { color: '#0EA5E9', position: 100 },
+      ],
+      gradientAngle: 180,
+    },
+    title: {
+      fontFamily: 'Nunito',
+      fontSize: 40,
+      fontWeight: 800,
+      color: '#FFFFFF',
+      subtitleColor: '#E0F2FE',
+      subtitleFontSize: 18,
+      alignment: 'center',
+    },
+    device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 90 },
+    slides: [
+      { role: 'hero', template: 'hero', title: 'Unlock\nyour mind.' },
+      { role: 'use-case', template: 'feature', title: 'Train your brain\nwith fun games.' },
+      { role: 'differentiator', template: 'centered', title: 'Sharpen your mind.\nConquer the day.' },
+      { role: 'secondary', template: 'feature', title: 'Choose your\nlevel.' },
+      { role: 'proof', template: 'social-proof', title: 'Track your\nprogress.' },
+    ],
+  },
+  {
+    id: 'soft-sage',
+    name: 'Soft Sage',
+    tagline: 'Sage cream · wellness',
+    swatch: '#A7C4A0',
+    background: {
+      type: 'linear-gradient',
+      gradientStops: [
+        { color: '#E7EFE3', position: 0 },
+        { color: '#F7F4EE', position: 100 },
+      ],
+      gradientAngle: 180,
+    },
+    title: {
+      fontFamily: 'Bricolage Grotesque',
+      fontSize: 38,
+      fontWeight: 600,
+      color: '#1F2A22',
+      subtitleColor: '#4F5C53',
+      subtitleFontSize: 17,
+      alignment: 'center',
+    },
+    device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 86 },
+    slides: [
+      { role: 'hero', template: 'hero', title: 'Get more from\nyour wellness journey.' },
+      { role: 'use-case', template: 'centered', title: 'All-in-one\nhealth & wellness.' },
+      { role: 'differentiator', template: 'centered', title: 'Workouts with\nexpert trainers.' },
+      { role: 'secondary', template: 'centered', title: 'Cook 800+\nhealthy recipes.' },
+      { role: 'proof', template: 'social-proof', title: 'Loved by 1M+\nwellness seekers.' },
+    ],
+  },
+  {
+    id: 'stripe-soft',
+    name: 'Stripe Soft',
+    tagline: 'Soft lavender · dashboard',
+    swatch: '#C7D2FE',
+    background: {
+      type: 'linear-gradient',
+      gradientStops: [
+        { color: '#E0E7FF', position: 0 },
+        { color: '#C7D2FE', position: 100 },
+      ],
+      gradientAngle: 180,
+    },
+    title: {
+      fontFamily: 'DM Sans',
+      fontSize: 38,
+      fontWeight: 700,
+      color: '#1E1B4B',
+      subtitleColor: '#3730A3',
+      subtitleFontSize: 18,
+      alignment: 'left',
+    },
+    device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 88 },
+    slides: [
+      { role: 'hero', template: 'feature', title: 'Run your\nbusiness anywhere.' },
+      { role: 'use-case', template: 'feature', title: 'Create payments\n& invoices instantly.' },
+      { role: 'differentiator', template: 'feature', title: 'Accept contactless\npayments on your phone.' },
+      { role: 'secondary', template: 'feature', title: 'See how your\nbusiness is growing.' },
+      { role: 'secondary', template: 'feature', title: 'Stay in sync\nfrom any device.' },
+      { role: 'proof', template: 'social-proof', title: 'Powering 4M+\nbusinesses.' },
+    ],
+  },
+];
+
+export function getKit(id: string): StarterKit | undefined {
+  return STARTER_KITS.find((k) => k.id === id);
+}
