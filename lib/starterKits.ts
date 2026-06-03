@@ -5,6 +5,7 @@ import type {
   TemplateId,
   DeviceFrameType,
   DeviceFrameStyle,
+  SlideElement,
 } from '@/types';
 
 export type RecipeRole = 'hero' | 'use-case' | 'differentiator' | 'secondary' | 'proof' | 'cta';
@@ -18,6 +19,8 @@ export interface StarterKitSlide {
   titleOverride?: Partial<TitleConfig>;
   featureCards?: { title: string; body: string }[];
   featureMore?: boolean;
+  /** Free movable components seeded onto the slide (ids assigned on apply). */
+  elements?: Omit<SlideElement, 'id'>[];
 }
 
 export const RECIPE_ROLES: { id: RecipeRole; label: string; hint: string }[] = [
@@ -41,7 +44,72 @@ export interface StarterKit {
   swatch: string;
 }
 
+const NORTE_EMOJI = (x: number, y: number, emoji: string, rotation: number): Omit<SlideElement, 'id'> => ({
+  kind: 'emoji',
+  x,
+  y,
+  rotation,
+  scale: 1,
+  emoji,
+  tile: true,
+  check: true,
+  size: 56,
+});
+
 export const STARTER_KITS: StarterKit[] = [
+  {
+    id: 'norte-store',
+    name: 'Norte · App Store',
+    tagline: 'Off-white · bold black · habit tracker',
+    swatch: '#111111',
+    background: { type: 'solid', solidColor: '#EDEBE5' },
+    title: {
+      fontFamily: 'Archivo',
+      fontSize: 40,
+      fontWeight: 800,
+      color: '#111111',
+      subtitleColor: '#6B6B6B',
+      subtitleFontSize: 18,
+      alignment: 'center',
+    },
+    device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 86 },
+    slides: [
+      { role: 'hero', template: 'pill', title: 'One Tap.\n[One Square.]', subtitle: "Today's habits — each check fills your grid.", showSubtitle: true },
+      {
+        role: 'use-case',
+        template: 'pill',
+        title: 'Build Daily [Streaks]\nThat Stick',
+        subtitle: 'One tap to check in — tiny days count.',
+        showSubtitle: true,
+        elements: [NORTE_EMOJI(56, 205, '🧘', -6), NORTE_EMOJI(334, 205, '📚', 6)],
+      },
+      {
+        role: 'differentiator',
+        template: 'pill',
+        title: 'Gentle Nudges,\n[Real Habits]',
+        subtitle: 'Goals, reminders, and habits in view — backed by science.',
+        showSubtitle: true,
+        elements: [NORTE_EMOJI(60, 235, '☀️', -8)],
+      },
+      {
+        role: 'secondary',
+        template: 'pill',
+        title: '[Private] by Design\nNo Account',
+        subtitle: '100% on your phone. No cloud, no sign-up, no tracking — ever.',
+        showSubtitle: true,
+        elements: [NORTE_EMOJI(60, 235, '🏃', -8)],
+      },
+      {
+        role: 'secondary',
+        template: 'pill',
+        title: 'See Your Whole [Year]\nat a Glance',
+        subtitle: 'Patterns, streaks, and progress across every habit.',
+        showSubtitle: true,
+        elements: [NORTE_EMOJI(334, 235, '🏋️', 8)],
+      },
+      { role: 'cta', template: 'habit-hero', title: 'Start [Today]\nBuild Better Habits', subtitle: 'Free to start. One habit. Your whole year.', showSubtitle: true },
+    ],
+  },
   {
     id: 'stoic',
     name: 'Stoic',

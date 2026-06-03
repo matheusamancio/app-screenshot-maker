@@ -13,6 +13,8 @@ import PillTemplate from './PillTemplate';
 import AwardsTemplate from './AwardsTemplate';
 import ReviewTemplate from './ReviewTemplate';
 import FeatureCardsTemplate from './FeatureCardsTemplate';
+import HabitHeroTemplate from './HabitHeroTemplate';
+import ElementsLayer from './ElementsLayer';
 import { isRtl } from '@/lib/presets';
 
 interface Props {
@@ -24,46 +26,18 @@ interface Props {
   onTitleChange?: (value: string) => void;
   onSubtitleChange?: (value: string) => void;
   onElementPointerDown?: (element: TransformableElement, e: React.PointerEvent) => void;
+  // Free-element editing (omitted in export/preview → static)
+  onElementSelect?: (sel: string) => void;
+  onElementTextChange?: (id: string, text: string) => void;
+  onElementEditStart?: (id: string) => void;
+  onElementEditEnd?: () => void;
+  editingElementId?: string | null;
 }
 
-export default function TemplateRenderer({
-  slide,
-  width,
-  height,
-  language = BASE_LANGUAGE,
-  fontFamilyOverride,
-  onTitleChange,
-  onSubtitleChange,
-  onElementPointerDown,
-}: Props) {
-  const loc = slide.localizations?.[language];
-  const titleText = loc?.title || slide.title.text;
-  const subtitleText = loc?.subtitle || slide.title.subtitle;
-  const rtl = isRtl(language);
+import type { TemplateRenderProps } from './types';
 
-  const common = {
-    screenshot: slide.screenshot,
-    title: titleText,
-    subtitle: subtitleText,
-    showSubtitle: slide.title.showSubtitle,
-    background: slide.background,
-    titleConfig: slide.title,
-    deviceConfig: slide.device,
-    overlayImage: slide.overlayImage,
-    featureCards: slide.featureCards,
-    featureMore: slide.featureMore,
-    width,
-    height,
-    rtl,
-    fontFamily: fontFamilyOverride || slide.title.fontFamily,
-    onTitleChange,
-    onSubtitleChange,
-    titleTransform: slide.titleTransform,
-    deviceTransform: slide.deviceTransform,
-    onElementPointerDown,
-  };
-
-  switch (slide.template) {
+function renderTemplate(template: Slide['template'], common: TemplateRenderProps) {
+  switch (template) {
     case 'feature':
       return <FeatureTemplate {...common} />;
     case 'minimal':
@@ -82,8 +56,71 @@ export default function TemplateRenderer({
       return <ReviewTemplate {...common} />;
     case 'feature-cards':
       return <FeatureCardsTemplate {...common} />;
+    case 'habit-hero':
+      return <HabitHeroTemplate {...common} />;
     case 'hero':
     default:
       return <HeroTemplate {...common} />;
   }
+}
+
+export default function TemplateRenderer({
+  slide,
+  width,
+  height,
+  language = BASE_LANGUAGE,
+  fontFamilyOverride,
+  onTitleChange,
+  onSubtitleChange,
+  onElementPointerDown,
+  onElementSelect,
+  onElementTextChange,
+  onElementEditStart,
+  onElementEditEnd,
+  editingElementId,
+}: Props) {
+  const loc = slide.localizations?.[language];
+  const titleText = loc?.title || slide.title.text;
+  const subtitleText = loc?.subtitle || slide.title.subtitle;
+  const rtl = isRtl(language);
+  const sf = width / 390;
+
+  const common: TemplateRenderProps = {
+    screenshot: slide.screenshot,
+    title: titleText,
+    subtitle: subtitleText,
+    showSubtitle: slide.title.showSubtitle,
+    background: slide.background,
+    titleConfig: slide.title,
+    deviceConfig: slide.device,
+    overlayImage: slide.overlayImage,
+    featureCards: slide.featureCards,
+    featureMore: slide.featureMore,
+    habitHero: slide.habitHero,
+    width,
+    height,
+    rtl,
+    fontFamily: fontFamilyOverride || slide.title.fontFamily,
+    onTitleChange,
+    onSubtitleChange,
+    titleTransform: slide.titleTransform,
+    deviceTransform: slide.deviceTransform,
+    onElementPointerDown,
+  };
+
+  return (
+    <div style={{ position: 'relative', width, height }}>
+      {renderTemplate(slide.template, common)}
+      <ElementsLayer
+        elements={slide.elements}
+        sf={sf}
+        fontFamily={fontFamilyOverride || slide.title.fontFamily}
+        onSelect={onElementSelect}
+        onTextChange={onElementTextChange}
+        onEditStart={onElementEditStart}
+        onEditEnd={onElementEditEnd}
+        editingId={editingElementId}
+      />
+    </div>
+  );
 }

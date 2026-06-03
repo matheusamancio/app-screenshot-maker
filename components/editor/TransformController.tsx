@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import type { ElementTransform, TransformableElement } from '@/types';
+import type { ElementTransform } from '@/types';
 import { IDENTITY_TRANSFORM } from '@/types';
 
 interface ScreenBox {
@@ -20,10 +20,19 @@ interface Props {
   scaleFactor: number;
   /** screen_px → stage_px conversion. */
   computedScale: number;
-  selected: TransformableElement | null;
+  /** Selected element key: 'title' | 'device' | `el:<id>` | null. */
+  selected: string | null;
+  /** Display label shown on the selection chrome. */
+  label?: string;
+  /** Whether the selection is a free element (shows Copy/Delete). */
+  isElement?: boolean;
   transform: ElementTransform;
   onChange: (patch: Partial<ElementTransform>) => void;
   onReset: () => void;
+  onCopy?: () => void;
+  onDelete?: () => void;
+  /** Double-click on the selection → request inline edit (text/emoji elements). */
+  onEditRequest?: () => void;
   /** Bumped externally to force re-measure when the underlying DOM changes. */
   measureTick: number;
 }
@@ -36,11 +45,17 @@ export default function TransformController({
   scaleFactor,
   computedScale,
   selected,
+  label,
+  isElement,
   transform,
   onChange,
   onReset,
+  onCopy,
+  onDelete,
+  onEditRequest,
   measureTick,
 }: Props) {
+  const labelText = label || selected || '';
   const [box, setBox] = useState<ScreenBox | null>(null);
   const dragRef = useRef<{
     mode: DragMode;
@@ -179,6 +194,10 @@ export default function TransformController({
       {/* Selection outline + drag area */}
       <div
         onPointerDown={startDrag('move')}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          onEditRequest?.();
+        }}
         style={{
           position: 'absolute',
           inset: 0,
@@ -208,7 +227,7 @@ export default function TransformController({
           fontFamily: 'var(--font-archivo), sans-serif',
         }}
       >
-        {selected}
+        {labelText}
       </div>
       {/* Reset button */}
       <button
@@ -220,7 +239,7 @@ export default function TransformController({
         style={{
           position: 'absolute',
           top: -22,
-          left: selected.length * 8 + 18,
+          left: labelText.length * 8 + 18,
           background: 'white',
           color: 'var(--norte-primary)',
           border: '1px solid var(--norte-primary)',
@@ -235,6 +254,37 @@ export default function TransformController({
       >
         Reset
       </button>
+      {/* Copy / Delete for free elements */}
+      {isElement && (onCopy || onDelete) && (
+        <div style={{ position: 'absolute', top: -22, right: 0, display: 'flex', gap: 4, pointerEvents: 'auto' }}>
+          {onCopy && (
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCopy();
+              }}
+              style={{ background: 'white', color: 'var(--norte-primary)', border: '1px solid var(--norte-primary)', fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4, cursor: 'pointer' }}
+              title="Copy (⌘C) — paste on any slide"
+            >
+              Copy
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              style={{ background: 'white', color: '#DC2626', border: '1px solid #DC2626', fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4, cursor: 'pointer' }}
+              title="Delete (Del)"
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      )}
       {/* Rotation handle */}
       <div
         onPointerDown={startDrag('rotate')}

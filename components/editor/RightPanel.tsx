@@ -9,6 +9,8 @@ import TitlePanel from './panels/TitlePanel';
 import DevicePanel from './panels/DevicePanel';
 import ImageLayerPanel from './panels/ImageLayerPanel';
 import FeaturesPanel from './panels/FeaturesPanel';
+import HeroPanel from './panels/HeroPanel';
+import ElementsPanel from './panels/ElementsPanel';
 
 interface Props {
   slide: Slide;
@@ -30,7 +32,9 @@ export default function RightPanel({ slide }: Props) {
             { id: 'layout', label: 'Layout', icon: <Icon name="layout" />, content: <LayoutPanel slide={slide} /> },
             { id: 'background', label: 'Background', icon: <Icon name="bg" />, content: <BackgroundPanel slide={slide} /> },
             { id: 'title', label: 'Title', icon: <Icon name="text" />, content: <TitlePanel slide={slide} /> },
+            { id: 'elements', label: 'Components', icon: <Icon name="components" />, content: <ElementsPanel slide={slide} /> },
             { id: 'features', label: 'Feature Cards', icon: <Icon name="cards" />, content: <FeaturesPanel slide={slide} /> },
+            { id: 'hero', label: 'Habit Hero', icon: <Icon name="hero" />, content: <HeroPanel slide={slide} /> },
             { id: 'device', label: 'Device', icon: <Icon name="device" />, content: <DevicePanel slide={slide} /> },
             { id: 'image', label: 'Image Layer', icon: <Icon name="image" />, content: <ImageLayerPanel slide={slide} /> },
           ]}
@@ -78,6 +82,24 @@ function Icon({ name }: { name: string }) {
         <svg {...props}>
           <rect x="3" y="4" width="18" height="6" rx="1.5" />
           <rect x="3" y="14" width="18" height="6" rx="1.5" />
+        </svg>
+      );
+    case 'hero':
+      return (
+        <svg {...props}>
+          <rect x="7" y="8" width="10" height="13" rx="2" />
+          <circle cx="6" cy="5" r="1.6" />
+          <circle cx="18" cy="6" r="1.6" />
+          <circle cx="12" cy="3.5" r="1.6" />
+        </svg>
+      );
+    case 'components':
+      return (
+        <svg {...props}>
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
         </svg>
       );
     case 'image':

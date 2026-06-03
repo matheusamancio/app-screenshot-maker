@@ -47,6 +47,7 @@ function kitToSlide(kit: StarterKit, idx: number): Slide {
     localizations: {},
     featureCards: ks.featureCards ? ks.featureCards.map((c, i) => ({ id: `${kit.id}-${idx}-card-${i}`, title: c.title, body: c.body })) : undefined,
     featureMore: ks.featureMore,
+    elements: ks.elements ? ks.elements.map((e, i) => ({ ...e, id: `${kit.id}-${idx}-el-${i}` })) : undefined,
     linkedToGlobals: true,
   };
 }

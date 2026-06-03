@@ -1,5 +1,5 @@
 export type Platform = 'ios' | 'android' | 'both';
-export type TemplateId = 'hero' | 'feature' | 'minimal' | 'social-proof' | 'split' | 'centered' | 'pill' | 'awards' | 'review' | 'feature-cards';
+export type TemplateId = 'hero' | 'feature' | 'minimal' | 'social-proof' | 'split' | 'centered' | 'pill' | 'awards' | 'review' | 'feature-cards' | 'habit-hero';
 export type DeviceFrameType = 'iphone-15' | 'iphone-15-pro' | 'pixel-8' | 'ipad' | 'none';
 export type DeviceFrameStyle = 'real-dark' | 'real-light' | 'clay-dark' | 'clay-light' | 'outline' | 'none';
 export type TextPosition = 'top' | 'middle' | 'bottom';
@@ -104,6 +104,56 @@ export interface FeatureCard {
   body: string;
 }
 
+/** Config for the 'habit-hero' template — floating emoji tiles + device showcase. */
+export interface HabitHeroConfig {
+  /** Floating habit tiles (emoji per tile). */
+  emojis: string[];
+  /** Show the black check badge on each tile + app icon. */
+  showChecks: boolean;
+  /** App icon emoji shown inside the device. */
+  appEmoji: string;
+  appName: string;
+  appTagline: string;
+  /** Big number near the device bottom, e.g. "+38,420". */
+  ratingValue: string;
+  ratingLabel: string;
+  showLaurel: boolean;
+  showStars: boolean;
+  /** When true the template renders only the device backdrop — the tiles/app
+   *  card/rating have been "broken apart" into movable elements. */
+  exploded?: boolean;
+}
+
+export type ElementKind = 'text' | 'emoji';
+
+/** A free-floating, movable component placed on a slide (on top of the template). */
+export interface SlideElement {
+  id: string;
+  kind: ElementKind;
+  /** Center position in baseline coordinates (390 × 844). */
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
+  // text
+  text?: string;
+  fontSize?: number;
+  fontWeight?: number;
+  color?: string;
+  align?: Alignment;
+  fontFamily?: string;
+  /** Text box width in baseline px (auto when omitted). */
+  width?: number;
+  // emoji
+  emoji?: string;
+  /** Render the emoji on a white rounded tile. */
+  tile?: boolean;
+  /** Show the black check badge. */
+  check?: boolean;
+  /** Tile / emoji size in baseline px. */
+  size?: number;
+}
+
 export type SlideRole = 'hero' | 'use-case' | 'differentiator' | 'secondary' | 'proof' | 'cta';
 
 export interface ElementTransform {
@@ -133,6 +183,10 @@ export interface Slide {
   featureCards?: FeatureCard[];
   /** Show the "& more!" footer under the cards. */
   featureMore?: boolean;
+  /** Config for the 'habit-hero' template. */
+  habitHero?: HabitHeroConfig;
+  /** Free-floating movable components on top of the template. */
+  elements?: SlideElement[];
   linkedToGlobals: boolean;
   role?: SlideRole;
   titleTransform?: ElementTransform;
@@ -198,4 +252,15 @@ export interface ProjectState {
     patch: Partial<ElementTransform>,
   ) => void;
   resetElementTransform: (slideId: string, element: TransformableElement) => void;
+
+  /** Currently selected on-canvas thing: 'title' | 'device' | `el:<id>` | null. */
+  selectedElementId: string | null;
+  setSelectedElement: (sel: string | null) => void;
+  clipboardElement: SlideElement | null;
+  addElement: (slideId: string, element: SlideElement, opts?: { select?: boolean }) => void;
+  updateElement: (slideId: string, elementId: string, patch: Partial<SlideElement>) => void;
+  deleteElement: (slideId: string, elementId: string) => void;
+  copyElement: (slideId: string, elementId: string) => void;
+  /** Paste the clipboard element onto a slide (offset + reselected). */
+  pasteElement: (slideId: string) => void;
 }

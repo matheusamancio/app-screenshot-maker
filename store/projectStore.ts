@@ -16,6 +16,7 @@ import type {
   LocalizationCell,
   ElementTransform,
   TransformableElement,
+  SlideElement,
 } from '@/types';
 import { IDENTITY_TRANSFORM, BASE_LANGUAGE } from '@/types';
 import { ALL_LANGUAGE_CODES, isBaseLanguage } from '@/lib/presets';
@@ -280,6 +281,7 @@ export const useProjectStore = create<ProjectState>()(
               localizations: {},
               featureCards: ks.featureCards ? ks.featureCards.map((c) => ({ id: uid(), title: c.title, body: c.body })) : undefined,
               featureMore: ks.featureMore,
+              elements: ks.elements ? ks.elements.map((e) => ({ ...e, id: uid() })) : undefined,
               linkedToGlobals: true,
               role: ks.role,
             };
@@ -315,6 +317,55 @@ export const useProjectStore = create<ProjectState>()(
             return { ...s, [key]: { ...IDENTITY_TRANSFORM } };
           }),
         })),
+
+      selectedElementId: null,
+      setSelectedElement: (sel) => set({ selectedElementId: sel }),
+      clipboardElement: null,
+
+      addElement: (slideId, element, opts) =>
+        set((state) => ({
+          slides: state.slides.map((s) =>
+            s.id === slideId ? { ...s, elements: [...(s.elements || []), element] } : s,
+          ),
+          selectedElementId: opts?.select === false ? state.selectedElementId : `el:${element.id}`,
+        })),
+
+      updateElement: (slideId, elementId, patch) =>
+        set((state) => ({
+          slides: state.slides.map((s) =>
+            s.id === slideId
+              ? { ...s, elements: (s.elements || []).map((el) => (el.id === elementId ? { ...el, ...patch } : el)) }
+              : s,
+          ),
+        })),
+
+      deleteElement: (slideId, elementId) =>
+        set((state) => ({
+          slides: state.slides.map((s) =>
+            s.id === slideId ? { ...s, elements: (s.elements || []).filter((el) => el.id !== elementId) } : s,
+          ),
+          selectedElementId: state.selectedElementId === `el:${elementId}` ? null : state.selectedElementId,
+        })),
+
+      copyElement: (slideId, elementId) =>
+        set((state) => {
+          const slide = state.slides.find((s) => s.id === slideId);
+          const el = slide?.elements?.find((e) => e.id === elementId);
+          return el ? { clipboardElement: JSON.parse(JSON.stringify(el)) } : {};
+        }),
+
+      pasteElement: (slideId) =>
+        set((state) => {
+          const src = state.clipboardElement;
+          if (!src) return {};
+          const clone: SlideElement = { ...JSON.parse(JSON.stringify(src)), id: uid(), x: src.x + 18, y: src.y + 18 };
+          return {
+            slides: state.slides.map((s) =>
+              s.id === slideId ? { ...s, elements: [...(s.elements || []), clone] } : s,
+            ),
+            selectedElementId: `el:${clone.id}`,
+          };
+        }),
 
       applyAIGeneration: (kitId, aiSlides, screenshots) =>
         set((state) => {

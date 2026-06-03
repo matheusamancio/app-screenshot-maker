@@ -1,4 +1,4 @@
-import type { BackgroundConfig, TitleConfig, DeviceConfig, OverlayImageConfig, ElementTransform, TransformableElement, FeatureCard } from '@/types';
+import type { BackgroundConfig, TitleConfig, DeviceConfig, OverlayImageConfig, ElementTransform, TransformableElement, FeatureCard, HabitHeroConfig } from '@/types';
 
 export interface TemplateRenderProps {
   screenshot: string | null;
@@ -12,6 +12,8 @@ export interface TemplateRenderProps {
   /** Feature-highlight cards (only used by the 'feature-cards' template). */
   featureCards?: FeatureCard[];
   featureMore?: boolean;
+  /** Config for the 'habit-hero' template. */
+  habitHero?: HabitHeroConfig;
   width: number;
   height: number;
   rtl?: boolean;

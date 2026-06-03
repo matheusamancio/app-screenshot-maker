@@ -17,6 +17,7 @@ const TEMPLATES: { id: TemplateId; label: string }[] = [
   { id: 'awards', label: 'Awards' },
   { id: 'review', label: 'Review' },
   { id: 'feature-cards', label: 'Feature Cards' },
+  { id: 'habit-hero', label: 'Habit Hero' },
 ];
 
 function MiniThumb({ template, slide }: { template: TemplateId; slide: Slide }) {
