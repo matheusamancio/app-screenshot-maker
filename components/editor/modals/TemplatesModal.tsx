@@ -45,6 +45,8 @@ function kitToSlide(kit: StarterKit, idx: number): Slide {
     },
     overlayImage: { imageBase64: null, fit: 'contain', opacity: 1, verticalPosition: 'center', layer: { visible: true, opacity: 1, locked: false } },
     localizations: {},
+    featureCards: ks.featureCards ? ks.featureCards.map((c, i) => ({ id: `${kit.id}-${idx}-card-${i}`, title: c.title, body: c.body })) : undefined,
+    featureMore: ks.featureMore,
     linkedToGlobals: true,
   };
 }

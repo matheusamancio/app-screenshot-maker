@@ -1,5 +1,5 @@
 export type Platform = 'ios' | 'android' | 'both';
-export type TemplateId = 'hero' | 'feature' | 'minimal' | 'social-proof' | 'split' | 'centered';
+export type TemplateId = 'hero' | 'feature' | 'minimal' | 'social-proof' | 'split' | 'centered' | 'pill' | 'awards' | 'review' | 'feature-cards';
 export type DeviceFrameType = 'iphone-15' | 'iphone-15-pro' | 'pixel-8' | 'ipad' | 'none';
 export type DeviceFrameStyle = 'real-dark' | 'real-light' | 'clay-dark' | 'clay-light' | 'outline' | 'none';
 export type TextPosition = 'top' | 'middle' | 'bottom';
@@ -91,6 +91,19 @@ export interface LocalizationEntry {
   subtitle: string;
 }
 
+export interface FeatureCard {
+  id: string;
+  /** Bold heading shown at the top of the dark card. */
+  title: string;
+  /**
+   * Newline-separated rows. Supported syntax per line:
+   *  - "Label | Value"  → key/value row (value right-aligned)
+   *  - "*text"          → highlighted row (selected option)
+   *  - "text ›"         → plain sub-row (trailing › shows a chevron)
+   */
+  body: string;
+}
+
 export type SlideRole = 'hero' | 'use-case' | 'differentiator' | 'secondary' | 'proof' | 'cta';
 
 export interface ElementTransform {
@@ -116,6 +129,10 @@ export interface Slide {
   device: DeviceConfig;
   overlayImage: OverlayImageConfig;
   localizations: Partial<Record<Language, LocalizationEntry>>;
+  /** Stacked dark feature-highlight cards (used by the 'feature-cards' template). */
+  featureCards?: FeatureCard[];
+  /** Show the "& more!" footer under the cards. */
+  featureMore?: boolean;
   linkedToGlobals: boolean;
   role?: SlideRole;
   titleTransform?: ElementTransform;

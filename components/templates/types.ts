@@ -1,4 +1,4 @@
-import type { BackgroundConfig, TitleConfig, DeviceConfig, OverlayImageConfig, ElementTransform, TransformableElement } from '@/types';
+import type { BackgroundConfig, TitleConfig, DeviceConfig, OverlayImageConfig, ElementTransform, TransformableElement, FeatureCard } from '@/types';
 
 export interface TemplateRenderProps {
   screenshot: string | null;
@@ -9,6 +9,9 @@ export interface TemplateRenderProps {
   titleConfig: TitleConfig;
   deviceConfig: DeviceConfig;
   overlayImage: OverlayImageConfig;
+  /** Feature-highlight cards (only used by the 'feature-cards' template). */
+  featureCards?: FeatureCard[];
+  featureMore?: boolean;
   width: number;
   height: number;
   rtl?: boolean;

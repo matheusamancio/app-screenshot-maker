@@ -278,6 +278,8 @@ export const useProjectStore = create<ProjectState>()(
               },
               overlayImage: { ...defaultOverlay },
               localizations: {},
+              featureCards: ks.featureCards ? ks.featureCards.map((c) => ({ id: uid(), title: c.title, body: c.body })) : undefined,
+              featureMore: ks.featureMore,
               linkedToGlobals: true,
               role: ks.role,
             };

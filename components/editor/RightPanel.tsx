@@ -8,6 +8,7 @@ import BackgroundPanel from './panels/BackgroundPanel';
 import TitlePanel from './panels/TitlePanel';
 import DevicePanel from './panels/DevicePanel';
 import ImageLayerPanel from './panels/ImageLayerPanel';
+import FeaturesPanel from './panels/FeaturesPanel';
 
 interface Props {
   slide: Slide;
@@ -29,6 +30,7 @@ export default function RightPanel({ slide }: Props) {
             { id: 'layout', label: 'Layout', icon: <Icon name="layout" />, content: <LayoutPanel slide={slide} /> },
             { id: 'background', label: 'Background', icon: <Icon name="bg" />, content: <BackgroundPanel slide={slide} /> },
             { id: 'title', label: 'Title', icon: <Icon name="text" />, content: <TitlePanel slide={slide} /> },
+            { id: 'features', label: 'Feature Cards', icon: <Icon name="cards" />, content: <FeaturesPanel slide={slide} /> },
             { id: 'device', label: 'Device', icon: <Icon name="device" />, content: <DevicePanel slide={slide} /> },
             { id: 'image', label: 'Image Layer', icon: <Icon name="image" />, content: <ImageLayerPanel slide={slide} /> },
           ]}
@@ -69,6 +71,13 @@ function Icon({ name }: { name: string }) {
         <svg {...props}>
           <rect x="5" y="2" width="14" height="20" rx="2" />
           <line x1="12" y1="18" x2="12" y2="18" />
+        </svg>
+      );
+    case 'cards':
+      return (
+        <svg {...props}>
+          <rect x="3" y="4" width="18" height="6" rx="1.5" />
+          <rect x="3" y="14" width="18" height="6" rx="1.5" />
         </svg>
       );
     case 'image':

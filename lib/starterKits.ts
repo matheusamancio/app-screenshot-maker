@@ -16,6 +16,8 @@ export interface StarterKitSlide {
   showSubtitle?: boolean;
   role?: RecipeRole;
   titleOverride?: Partial<TitleConfig>;
+  featureCards?: { title: string; body: string }[];
+  featureMore?: boolean;
 }
 
 export const RECIPE_ROLES: { id: RecipeRole; label: string; hint: string }[] = [
@@ -40,6 +42,64 @@ export interface StarterKit {
 }
 
 export const STARTER_KITS: StarterKit[] = [
+  {
+    id: 'stoic',
+    name: 'Stoic',
+    tagline: 'Off-white · bold black · awards',
+    swatch: '#0E0E0E',
+    background: { type: 'solid', solidColor: '#F4F1EA' },
+    title: {
+      fontFamily: 'Sora',
+      fontSize: 42,
+      fontWeight: 800,
+      color: '#111111',
+      subtitleColor: '#4A4845',
+      subtitleFontSize: 17,
+      alignment: 'center',
+    },
+    device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 86 },
+    slides: [
+      { role: 'hero', template: 'awards', title: 'Your Journal\nfor Better\nMental Health.', subtitle: "App of the Day|Editors' Choice", showSubtitle: true },
+      { role: 'use-case', template: 'feature', title: 'Journal & Reflect', subtitle: 'Private & secure tools for better mood.', showSubtitle: true, titleOverride: { alignment: 'left' } },
+      { role: 'differentiator', template: 'centered', title: 'Track Mood\n& Habits' },
+      { role: 'secondary', template: 'feature', title: 'Calm Your Mind', subtitle: 'Reduce stress & anxiety.', showSubtitle: true, titleOverride: { alignment: 'left' } },
+      { role: 'proof', template: 'review', title: 'Life changing app.\nGet it to become\na better you.', subtitle: 'Daphne · on the App Store', showSubtitle: true },
+    ],
+  },
+  {
+    id: 'refocus',
+    name: 'Refocus',
+    tagline: 'Light gray · black pill headlines',
+    swatch: '#1A1A1A',
+    background: { type: 'solid', solidColor: '#ECECEC' },
+    title: {
+      fontFamily: 'Archivo',
+      fontSize: 40,
+      fontWeight: 800,
+      color: '#111111',
+      subtitleColor: '#3A3A3A',
+      subtitleFontSize: 18,
+      alignment: 'center',
+    },
+    device: { frameType: 'iphone-15', frameStyle: 'real-dark', scale: 84 },
+    slides: [
+      { role: 'hero', template: 'pill', title: '[Block] Apps\n& Websites', subtitle: 'Limit Screen Time', showSubtitle: true },
+      { role: 'use-case', template: 'pill', title: 'Customize\n[Strictness]', subtitle: 'Control Your Focus', showSubtitle: true },
+      {
+        role: 'differentiator',
+        template: 'feature-cards',
+        title: 'Powerful controls',
+        featureMore: true,
+        featureCards: [
+          { title: 'Block Any App', body: 'Select Apps & Websites to Block ›\nInstagram · YouTube · TikTok | 3 apps' },
+          { title: 'Schedule Any Time', body: 'Start at | 9:00 AM\nEnd at | 5:00 PM\nRepeat | Mon – Fri' },
+          { title: 'Set App Limits', body: '10 minutes\n*15 minutes\n20 minutes' },
+        ],
+      },
+      { role: 'secondary', template: 'pill', title: '[Track]\nScreen Time', subtitle: 'See where your time really goes.', showSubtitle: true },
+      { role: 'proof', template: 'review', title: 'BEST APP.\nPERIOD.', subtitle: 'Amazing blocking app with seamless performance.', showSubtitle: true },
+    ],
+  },
   {
     id: 'norte',
     name: 'Norte',

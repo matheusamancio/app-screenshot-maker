@@ -9,6 +9,10 @@ import MinimalTemplate from './MinimalTemplate';
 import SocialProofTemplate from './SocialProofTemplate';
 import SplitTemplate from './SplitTemplate';
 import CenteredTemplate from './CenteredTemplate';
+import PillTemplate from './PillTemplate';
+import AwardsTemplate from './AwardsTemplate';
+import ReviewTemplate from './ReviewTemplate';
+import FeatureCardsTemplate from './FeatureCardsTemplate';
 import { isRtl } from '@/lib/presets';
 
 interface Props {
@@ -46,6 +50,8 @@ export default function TemplateRenderer({
     titleConfig: slide.title,
     deviceConfig: slide.device,
     overlayImage: slide.overlayImage,
+    featureCards: slide.featureCards,
+    featureMore: slide.featureMore,
     width,
     height,
     rtl,
@@ -68,6 +74,14 @@ export default function TemplateRenderer({
       return <SplitTemplate {...common} />;
     case 'centered':
       return <CenteredTemplate {...common} />;
+    case 'pill':
+      return <PillTemplate {...common} />;
+    case 'awards':
+      return <AwardsTemplate {...common} />;
+    case 'review':
+      return <ReviewTemplate {...common} />;
+    case 'feature-cards':
+      return <FeatureCardsTemplate {...common} />;
     case 'hero':
     default:
       return <HeroTemplate {...common} />;

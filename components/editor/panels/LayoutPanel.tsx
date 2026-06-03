@@ -13,6 +13,10 @@ const TEMPLATES: { id: TemplateId; label: string }[] = [
   { id: 'social-proof', label: 'Social Proof' },
   { id: 'split', label: 'Split' },
   { id: 'centered', label: 'Centered' },
+  { id: 'pill', label: 'Pill' },
+  { id: 'awards', label: 'Awards' },
+  { id: 'review', label: 'Review' },
+  { id: 'feature-cards', label: 'Feature Cards' },
 ];
 
 function MiniThumb({ template, slide }: { template: TemplateId; slide: Slide }) {
