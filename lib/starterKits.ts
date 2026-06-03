@@ -7,6 +7,7 @@ import type {
   DeviceFrameStyle,
   SlideElement,
 } from '@/types';
+import { NORTE_SCREENS, NORTE_SCREEN_TITLES } from './norteScreensData';
 
 export type RecipeRole = 'hero' | 'use-case' | 'differentiator' | 'secondary' | 'proof' | 'cta';
 
@@ -89,118 +90,42 @@ const SUBHEAD = (text: string): Omit<SlideElement, 'id'> => ({
   width: 320,
 });
 
-type El = Omit<SlideElement, 'id'>;
-const TXT = (x: number, y: number, text: string, fontSize: number, fontWeight: number, color: string, width = 300): El => ({ kind: 'text', x, y, rotation: 0, scale: 1, text, fontSize, fontWeight, color, align: 'center', width });
-const SHP = (x: number, y: number, w: number, h: number, bg: string, radius = 22): El => ({ kind: 'shape', x, y, w, h, bg, radius, rotation: 0, scale: 1 });
-const CARD = (x: number, y: number, w: number, h: number, bg: string, opts: Partial<El>): El => ({ kind: 'card', x, y, w, h, bg, radius: 22, rotation: 0, scale: 1, ...opts });
-/** A light phone body that holds the in-screen components. */
-const PHONE = (): El => ({ kind: 'shape', x: 195, y: 520, w: 252, h: 560, bg: '#F4F1EA', radius: 46, rotation: 0, scale: 1 });
+const NORTE_ROLES: RecipeRole[] = ['hero', 'use-case', 'differentiator', 'secondary', 'secondary', 'secondary', 'cta'];
 
-/** Each Norte screen fully decomposed into editable, localizable components — no flat image. */
-const NORTE_COMPONENTS_SLIDES: StarterKitSlide[] = [
-  {
-    role: 'hero',
-    template: 'hero',
-    title: '',
-    noChrome: true,
-    elements: [
-      HEADLINE('One Tap.\n[One Square.]'),
-      SUBHEAD("Today's habits — each check fills your grid."),
-      PHONE(),
-      TXT(195, 320, '3 / 4 feitos', 36, 800, '#111111', 240),
-      { kind: 'datestrip', x: 195, y: 372, w: 224, days: 'Q,S,S,D,S,T', dates: '28,29,30,31,1,2', activeIndex: 5, rotation: 0, scale: 1 },
-      CARD(195, 446, 220, 70, '#FFFFFF', { cardTitle: '🏋️ exercitar', cardValue: '20min', cardCaption: '7d · 54%', fontSize: 20, color: '#111111', radius: 16 }),
-      { kind: 'heatmap', x: 195, y: 600, w: 224, cols: 11, rows: 7, fill: 0.5, cell: '#1C1C1E', bg: '#D8D5CE', rotation: 0, scale: 1 },
-    ],
-  },
-  {
-    role: 'use-case',
-    template: 'hero',
-    title: '',
-    noChrome: true,
-    elements: [
-      HEADLINE('Build Daily [Streaks]\nThat Stick'),
-      SUBHEAD('One tap to check in — tiny days count.'),
-      NORTE_EMOJI(56, 210, '🧘', -6),
-      NORTE_EMOJI(334, 210, '📚', 6),
-      PHONE(),
-      TXT(195, 330, 'Meditar', 32, 800, '#111111', 240),
-      { kind: 'card', x: 195, y: 450, w: 230, h: 150, bg: '#1C1C1E', radius: 24, cardTitle: '🔥 Sequência atual', cardValue: '9d', cardCaption: '✓ Cumprido hoje', accent: '#FFFFFF', fontSize: 46, rotation: 0, scale: 1 },
-      CARD(110, 620, 70, 64, '#FFFFFF', { cardTitle: 'Semana', cardValue: '7/7', fontSize: 22, color: '#111111', radius: 14 }),
-      CARD(195, 620, 70, 64, '#FFFFFF', { cardTitle: '30d', cardValue: '25', fontSize: 22, color: '#111111', radius: 14 }),
-      CARD(280, 620, 70, 64, '#FFFFFF', { cardTitle: 'Ano', cardValue: '18%', fontSize: 22, color: '#111111', radius: 14 }),
-    ],
-  },
-  {
-    role: 'differentiator',
-    template: 'hero',
-    title: '',
-    noChrome: true,
-    elements: [
-      HEADLINE('Gentle Nudges,\n[Real Habits]'),
-      SUBHEAD('Goals, reminders, and habits in view — backed by science.'),
-      NORTE_EMOJI(60, 235, '☀️', -8),
-      PHONE(),
-      CARD(195, 380, 226, 96, '#FFFFFF', { cardTitle: 'Norte · agora', cardValue: 'Hora de meditar 🧘', cardCaption: 'Mantenha sua sequência de 9 dias', fontSize: 18, color: '#111111', radius: 18 }),
-      { kind: 'card', x: 195, y: 520, w: 226, h: 150, bg: '#1C1C1E', radius: 22, cardTitle: 'Norte · hoje', cardValue: '2 / 3 feitos', cardCaption: '✓ exercitar  ✓ Leitura  ○ Água', accent: '#FFFFFF', fontSize: 22, rotation: 0, scale: 1 },
-    ],
-  },
-  {
-    role: 'secondary',
-    template: 'hero',
-    title: '',
-    noChrome: true,
-    elements: [
-      HEADLINE('[Private] by Design\nNo Account'),
-      SUBHEAD('100% on your phone. No cloud, no sign-up, no tracking — ever.'),
-      NORTE_EMOJI(60, 235, '🏃', -8),
-      PHONE(),
-      SHP(195, 430, 84, 84, '#111111', 42),
-      { kind: 'icon', x: 195, y: 430, w: 40, h: 40, icon: 'lock', color: '#FFFFFF', rotation: 0, scale: 1 },
-      TXT(195, 510, 'Tudo fica no\nseu aparelho', 26, 800, '#111111', 240),
-      TXT(195, 575, 'Seus dados nunca saem do seu iPhone.', 14, 500, '#6B6B6B', 240),
-    ],
-  },
-  {
-    role: 'secondary',
-    template: 'hero',
-    title: '',
-    noChrome: true,
-    elements: [
-      HEADLINE('See Your Whole [Year]\nat a Glance'),
-      SUBHEAD('Patterns, streaks, and progress across every habit.'),
-      NORTE_EMOJI(334, 235, '🏋️', 8),
-      PHONE(),
-      TXT(150, 350, 'Mês a mês', 18, 700, '#111111', 160),
-      SHP(110, 560, 36, 110, '#D8D5CE', 8),
-      SHP(155, 575, 36, 95, '#D8D5CE', 8),
-      SHP(200, 570, 36, 105, '#D8D5CE', 8),
-      SHP(245, 545, 36, 145, '#D8D5CE', 8),
-      SHP(290, 505, 36, 200, '#111111', 8),
-      TXT(290, 630, '88%', 14, 800, '#111111', 60),
-    ],
-  },
-  {
-    role: 'cta',
-    template: 'hero',
-    title: '',
-    noChrome: true,
-    elements: [
-      HEADLINE('Start [Today]\nBuild Better Habits'),
-      SUBHEAD('Free to start. One habit. Your whole year.'),
-      NORTE_EMOJI(70, 300, '🏋️', -8),
-      NORTE_EMOJI(320, 300, '📚', 8),
-      NORTE_EMOJI(80, 370, '🧘', -5),
-      NORTE_EMOJI(310, 370, '🏃', 6),
-      NORTE_EMOJI(70, 450, '💧', -10),
-      NORTE_EMOJI(320, 450, '☀️', 10),
-      { kind: 'emoji', x: 195, y: 470, rotation: 0, scale: 1, emoji: '⛰️', tile: true, check: true, size: 96 },
-      TXT(195, 575, 'norte', 34, 800, '#111111', 220),
-      TXT(195, 615, 'Track goals, streaks & your whole year.', 15, 500, '#6B6B6B', 280),
-      { kind: 'laurel', x: 195, y: 720, size: 50, color: '#111111', cardValue: '+38,420', cardCaption: 'Hábitos cumpridos', rotation: 0, scale: 1 },
-    ],
-  },
+/** Clean single-line pill headlines (the source splits the pill word into its own node). */
+const NORTE_HEADLINES = [
+  '[Track] Every Habit,\nEvery Day',
+  'One Tap.\n[One Square.]',
+  'Build Daily [Streaks]\nThat Stick',
+  'Gentle Nudges,\n[Real Habits]',
+  '[Private] by Design\nNo Account',
+  'See Your Whole [Year]\nat a Glance',
+  'Start [Today]\nBuild Better Habits',
 ];
+
+/** Replace the split headline parts (+ their pill background) with one pill-markup headline. */
+function cleanNorteScreen(els: Omit<SlideElement, 'id'>[], i: number): Omit<SlideElement, 'id'>[] {
+  const kept = els.filter((e) => {
+    if (e.kind === 'text' && (e.fontSize || 0) >= 22 && (e.y || 0) < 110) return false;
+    if (e.kind === 'shape' && (e.y || 0) < 110 && (e.h || 0) < 40 && e.bg === '#1a1a1a' && (e.radius || 0) <= 8) return false;
+    return true;
+  });
+  const headline: Omit<SlideElement, 'id'> = {
+    kind: 'text', x: 195, y: 78, rotation: 0, scale: 1,
+    text: NORTE_HEADLINES[i] || NORTE_SCREEN_TITLES[i] || '',
+    fontSize: 30, fontWeight: 800, color: '#1a1a1a', align: 'center', width: 360,
+  };
+  return [...kept, headline];
+}
+
+/** Each Norte screen, extracted faithfully from the source HTML as editable components — no flat image. */
+const NORTE_COMPONENTS_SLIDES: StarterKitSlide[] = NORTE_SCREENS.map((elements, i) => ({
+  role: NORTE_ROLES[i] || 'secondary',
+  template: 'hero' as const,
+  title: NORTE_SCREEN_TITLES[i] || '',
+  noChrome: true,
+  elements: cleanNorteScreen(elements, i),
+}));
 
 export const STARTER_KITS: StarterKit[] = [
   {
