@@ -1,116 +1,103 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Slide } from '@/types';
-import Accordion from '../ui/Accordion';
-import LayoutPanel from './panels/LayoutPanel';
-import BackgroundPanel from './panels/BackgroundPanel';
+import { useProjectStore } from '@/store/projectStore';
+import SlidePanel from './panels/SlidePanel';
+import ElementInspector from './panels/ElementInspector';
+import MultiInspector from './panels/MultiInspector';
 import TitlePanel from './panels/TitlePanel';
 import DevicePanel from './panels/DevicePanel';
-import ImageLayerPanel from './panels/ImageLayerPanel';
-import FeaturesPanel from './panels/FeaturesPanel';
-import HeroPanel from './panels/HeroPanel';
-import ElementsPanel from './panels/ElementsPanel';
 
 interface Props {
   slide: Slide;
 }
 
+/**
+ * Context-aware right panel. The `Selection` tab shows only the controls that
+ * apply to whatever is currently selected (a component, multiple components, the
+ * title, or the device). The `Slide` tab holds page-level settings (background,
+ * layout, device, layers). The active tab follows the selection automatically
+ * but can be switched manually.
+ */
 export default function RightPanel({ slide }: Props) {
+  const selectedElementId = useProjectStore((s) => s.selectedElementId);
+  const selectedIds = useProjectStore((s) => s.selectedIds || []);
+
+  const multi = selectedIds.length > 1;
+  const elId = !multi && selectedElementId?.startsWith('el:') ? selectedElementId.slice(3) : null;
+  const isTitle = selectedElementId === 'title';
+  const isDevice = selectedElementId === 'device';
+  const hasSelection = multi || !!elId || isTitle || isDevice;
+
+  const [tab, setTab] = useState<'selection' | 'slide'>('slide');
+  // Follow the selection: jump to the inspector whenever the selection changes,
+  // fall back to slide settings when nothing is selected.
+  const selKey = multi ? `multi:${selectedIds.length}:${selectedIds.join(',')}` : selectedElementId || '';
+  useEffect(() => {
+    setTab(hasSelection ? 'selection' : 'slide');
+  }, [selKey, hasSelection]);
+
+  const el = elId ? (slide.elements || []).find((e) => e.id === elId) : undefined;
+
   return (
     <aside className="w-80 border-l border-border-default bg-surface flex flex-col">
-      <div className="px-4 pt-4 pb-3 border-b border-border-default flex items-center justify-between">
-        <div>
-          <div className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Slide settings</div>
-          <div className="text-sm font-semibold text-primary font-sora">Customize</div>
+      {/* Tab switch */}
+      <div className="px-3 pt-3 pb-2 border-b border-border-default">
+        <div className="grid grid-cols-2 gap-1 bg-overlay rounded-lg p-1 border border-border-default">
+          <button
+            onClick={() => setTab('selection')}
+            disabled={!hasSelection}
+            className={`h-7 rounded-md text-xs font-semibold transition-colors ${tab === 'selection' ? 'bg-surface text-norte-primary shadow-sm' : 'text-text-muted hover:text-secondary disabled:opacity-40 disabled:hover:text-text-muted'}`}
+          >
+            {selectionLabel(multi, selectedIds.length, elId, isTitle, isDevice)}
+          </button>
+          <button
+            onClick={() => setTab('slide')}
+            className={`h-7 rounded-md text-xs font-semibold transition-colors ${tab === 'slide' ? 'bg-surface text-norte-primary shadow-sm' : 'text-text-muted hover:text-secondary'}`}
+          >
+            Slide
+          </button>
         </div>
       </div>
+
       <div className="flex-1 overflow-y-auto px-3 py-3">
-        <Accordion
-          defaultOpen="layout"
-          sections={[
-            { id: 'layout', label: 'Layout', icon: <Icon name="layout" />, content: <LayoutPanel slide={slide} /> },
-            { id: 'background', label: 'Background', icon: <Icon name="bg" />, content: <BackgroundPanel slide={slide} /> },
-            { id: 'title', label: 'Title', icon: <Icon name="text" />, content: <TitlePanel slide={slide} /> },
-            { id: 'elements', label: 'Components', icon: <Icon name="components" />, content: <ElementsPanel slide={slide} /> },
-            { id: 'features', label: 'Feature Cards', icon: <Icon name="cards" />, content: <FeaturesPanel slide={slide} /> },
-            { id: 'hero', label: 'Habit Hero', icon: <Icon name="hero" />, content: <HeroPanel slide={slide} /> },
-            { id: 'device', label: 'Device', icon: <Icon name="device" />, content: <DevicePanel slide={slide} /> },
-            { id: 'image', label: 'Image Layer', icon: <Icon name="image" />, content: <ImageLayerPanel slide={slide} /> },
-          ]}
-        />
+        {tab === 'selection' ? (
+          multi ? (
+            <MultiInspector slide={slide} ids={selectedIds} />
+          ) : el ? (
+            <ElementInspector slide={slide} el={el} />
+          ) : isTitle ? (
+            <TitlePanel slide={slide} />
+          ) : isDevice ? (
+            <DevicePanel slide={slide} />
+          ) : (
+            <EmptyHint />
+          )
+        ) : (
+          <SlidePanel slide={slide} />
+        )}
       </div>
     </aside>
   );
 }
 
-function Icon({ name }: { name: string }) {
-  const props = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
-  switch (name) {
-    case 'layout':
-      return (
-        <svg {...props}>
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <line x1="3" y1="9" x2="21" y2="9" />
-          <line x1="9" y1="21" x2="9" y2="9" />
-        </svg>
-      );
-    case 'bg':
-      return (
-        <svg {...props}>
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <circle cx="8" cy="9" r="1" />
-        </svg>
-      );
-    case 'text':
-      return (
-        <svg {...props}>
-          <polyline points="4 7 4 4 20 4 20 7" />
-          <line x1="9" y1="20" x2="15" y2="20" />
-          <line x1="12" y1="4" x2="12" y2="20" />
-        </svg>
-      );
-    case 'device':
-      return (
-        <svg {...props}>
-          <rect x="5" y="2" width="14" height="20" rx="2" />
-          <line x1="12" y1="18" x2="12" y2="18" />
-        </svg>
-      );
-    case 'cards':
-      return (
-        <svg {...props}>
-          <rect x="3" y="4" width="18" height="6" rx="1.5" />
-          <rect x="3" y="14" width="18" height="6" rx="1.5" />
-        </svg>
-      );
-    case 'hero':
-      return (
-        <svg {...props}>
-          <rect x="7" y="8" width="10" height="13" rx="2" />
-          <circle cx="6" cy="5" r="1.6" />
-          <circle cx="18" cy="6" r="1.6" />
-          <circle cx="12" cy="3.5" r="1.6" />
-        </svg>
-      );
-    case 'components':
-      return (
-        <svg {...props}>
-          <rect x="3" y="3" width="7" height="7" rx="1.5" />
-          <rect x="14" y="3" width="7" height="7" rx="1.5" />
-          <rect x="3" y="14" width="7" height="7" rx="1.5" />
-          <rect x="14" y="14" width="7" height="7" rx="1.5" />
-        </svg>
-      );
-    case 'image':
-      return (
-        <svg {...props}>
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <circle cx="9" cy="9" r="2" />
-          <path d="M21 15l-5-5L5 21" />
-        </svg>
-      );
-    default:
-      return null;
-  }
+function selectionLabel(multi: boolean, count: number, elId: string | null, isTitle: boolean, isDevice: boolean) {
+  if (multi) return `${count} selected`;
+  if (isTitle) return 'Title';
+  if (isDevice) return 'Device';
+  if (elId) return 'Selection';
+  return 'Selection';
+}
+
+function EmptyHint() {
+  return (
+    <div className="flex flex-col items-center text-center gap-3 pt-10 px-4">
+      <div className="w-12 h-12 rounded-xl bg-overlay border border-border-default flex items-center justify-center text-text-muted">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3l7 17 2-7 7-2z" /></svg>
+      </div>
+      <div className="text-sm font-semibold text-secondary font-sora">Nothing selected</div>
+      <p className="text-[11px] text-text-muted leading-relaxed">Click a component on the canvas to edit it here, or use the <span className="font-semibold">Slide</span> tab for page settings.</p>
+    </div>
+  );
 }

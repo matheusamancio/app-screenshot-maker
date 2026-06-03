@@ -203,6 +203,20 @@ export default function SlideCanvas({ slide, width, active, onActivate, language
     setMeasureTick((t) => t + 1);
   }, [slide.titleTransform, slide.deviceTransform, slide.template, slide.title.fontSize, slide.title.text, slide.title.subtitle, slide.device.scale, slide.elements, selected, selectedIds, width, active]);
 
+  // Bridge: the right-panel align buttons dispatch `sf:align`; the active slide
+  // runs the DOM-measured alignment for the current selection.
+  const alignToRef = useRef(alignTo);
+  alignToRef.current = alignTo;
+  useEffect(() => {
+    if (!active) return;
+    const onAlign = (e: Event) => {
+      const d = (e as CustomEvent).detail as { edge: 'left' | 'hcenter' | 'right' | 'top' | 'vcenter' | 'bottom'; relativeTo: 'screen' | 'selection' };
+      alignToRef.current(d.edge, d.relativeTo);
+    };
+    window.addEventListener('sf:align', onAlign);
+    return () => window.removeEventListener('sf:align', onAlign);
+  }, [active]);
+
   useEffect(() => {
     if (!active) {
       setEditingElementId(null);
