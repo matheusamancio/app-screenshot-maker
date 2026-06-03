@@ -23,6 +23,8 @@ export interface StarterKitSlide {
   elements?: Omit<SlideElement, 'id'>[];
   /** A finished full-bleed screenshot (public URL). Hides title + device. */
   fullImage?: string;
+  /** Hide the built-in title (the slide is composed entirely of components). */
+  noTitle?: boolean;
 }
 
 export const RECIPE_ROLES: { id: RecipeRole; label: string; hint: string }[] = [
@@ -58,7 +60,72 @@ const NORTE_EMOJI = (x: number, y: number, emoji: string, rotation: number): Omi
   size: 56,
 });
 
+const HEADLINE = (text: string): Omit<SlideElement, 'id'> => ({
+  kind: 'text',
+  x: 195,
+  y: 96,
+  rotation: 0,
+  scale: 1,
+  text,
+  fontSize: 38,
+  fontWeight: 800,
+  color: '#111111',
+  align: 'center',
+  width: 340,
+});
+const SUBHEAD = (text: string): Omit<SlideElement, 'id'> => ({
+  kind: 'text',
+  x: 195,
+  y: 168,
+  rotation: 0,
+  scale: 1,
+  text,
+  fontSize: 17,
+  fontWeight: 500,
+  color: '#6B6B6B',
+  align: 'center',
+  width: 320,
+});
+
+/** Each Norte screen fully decomposed into editable, localizable components. */
+const NORTE_COMPONENTS_SLIDES: StarterKitSlide[] = [
+  { role: 'hero', template: 'hero', title: '', noTitle: true, elements: [HEADLINE('One Tap.\n[One Square.]'), SUBHEAD("Today's habits — each check fills your grid.")] },
+  { role: 'use-case', template: 'hero', title: '', noTitle: true, elements: [HEADLINE('Build Daily [Streaks]\nThat Stick'), SUBHEAD('One tap to check in — tiny days count.'), NORTE_EMOJI(56, 210, '🧘', -6), NORTE_EMOJI(334, 210, '📚', 6)] },
+  { role: 'differentiator', template: 'hero', title: '', noTitle: true, elements: [HEADLINE('Gentle Nudges,\n[Real Habits]'), SUBHEAD('Goals, reminders, and habits in view — backed by science.'), NORTE_EMOJI(60, 235, '☀️', -8)] },
+  { role: 'secondary', template: 'hero', title: '', noTitle: true, elements: [HEADLINE('[Private] by Design\nNo Account'), SUBHEAD('100% on your phone. No cloud, no sign-up, no tracking — ever.'), NORTE_EMOJI(60, 235, '🏃', -8)] },
+  { role: 'secondary', template: 'hero', title: '', noTitle: true, elements: [HEADLINE('See Your Whole [Year]\nat a Glance'), SUBHEAD('Patterns, streaks, and progress across every habit.'), NORTE_EMOJI(334, 235, '🏋️', 8)] },
+  {
+    role: 'cta',
+    template: 'hero',
+    title: '',
+    noTitle: true,
+    elements: [
+      HEADLINE('Start [Today]\nBuild Better Habits'),
+      SUBHEAD('Free to start. One habit. Your whole year.'),
+      NORTE_EMOJI(70, 250, '🏋️', -8),
+      NORTE_EMOJI(320, 250, '📚', 8),
+      NORTE_EMOJI(80, 320, '🧘', -5),
+      NORTE_EMOJI(310, 320, '🏃', 6),
+      NORTE_EMOJI(70, 400, '💧', -10),
+      NORTE_EMOJI(320, 400, '☀️', 10),
+      { kind: 'emoji', x: 195, y: 430, rotation: 0, scale: 1, emoji: '⛰️', tile: true, check: true, size: 92 },
+      { kind: 'text', x: 195, y: 540, rotation: 0, scale: 1, text: 'norte', fontSize: 34, fontWeight: 800, color: '#111111', align: 'center', width: 220 },
+      { kind: 'text', x: 195, y: 580, rotation: 0, scale: 1, text: 'Track goals, streaks & your whole year.', fontSize: 15, fontWeight: 500, color: '#6B6B6B', align: 'center', width: 280 },
+    ],
+  },
+];
+
 export const STARTER_KITS: StarterKit[] = [
+  {
+    id: 'norte-components',
+    name: 'Norte · Components',
+    tagline: 'Every screen broken into editable components',
+    swatch: '#111111',
+    background: { type: 'solid', solidColor: '#EDEBE5' },
+    title: { fontFamily: 'Archivo', fontSize: 38, fontWeight: 800, color: '#111111', subtitleColor: '#6B6B6B', subtitleFontSize: 17, alignment: 'center' },
+    device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 84 },
+    slides: NORTE_COMPONENTS_SLIDES,
+  },
   {
     id: 'norte-designs',
     name: 'Norte · Designs',

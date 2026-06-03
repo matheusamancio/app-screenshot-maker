@@ -207,6 +207,21 @@ export const useProjectStore = create<ProjectState>()(
           }),
         })),
 
+      setElementLocalizedText: (slideId, elementId, lang, value) =>
+        set((state) => ({
+          slides: state.slides.map((s) => {
+            if (s.id !== slideId) return s;
+            return {
+              ...s,
+              elements: (s.elements || []).map((el) => {
+                if (el.id !== elementId) return el;
+                if (isBaseLanguage(lang)) return { ...el, text: value };
+                return { ...el, loc: { ...(el.loc || {}), [lang]: value } };
+              }),
+            };
+          }),
+        })),
+
       applyLocalizationCells: (cells) =>
         set((state) => {
           if (!cells.length) return state;
@@ -223,16 +238,25 @@ export const useProjectStore = create<ProjectState>()(
               if (!updates) return s;
               let title = { ...s.title };
               const localizations = { ...s.localizations };
+              let elements = s.elements;
               for (const u of updates) {
-                if (isBaseLanguage(u.lang)) {
+                if (u.field === 'element' && u.elementId) {
+                  elements = (elements || []).map((el) => {
+                    if (el.id !== u.elementId) return el;
+                    if (isBaseLanguage(u.lang)) return { ...el, text: u.value };
+                    return { ...el, loc: { ...(el.loc || {}), [u.lang]: u.value } };
+                  });
+                } else if (isBaseLanguage(u.lang)) {
                   if (u.field === 'title') title = { ...title, text: u.value };
-                  else title = { ...title, subtitle: u.value };
+                  else if (u.field === 'subtitle') title = { ...title, subtitle: u.value };
                 } else {
                   const prev = localizations[u.lang] || { title: '', subtitle: '' };
-                  localizations[u.lang] = { ...prev, [u.field]: u.value };
+                  if (u.field === 'title' || u.field === 'subtitle') {
+                    localizations[u.lang] = { ...prev, [u.field]: u.value };
+                  }
                 }
               }
-              return { ...s, title, localizations };
+              return { ...s, title, localizations, elements };
             }),
           };
         }),
@@ -258,6 +282,7 @@ export const useProjectStore = create<ProjectState>()(
           const newSlides: Slide[] = kit.slides.map((ks, i) => {
             const id = uid();
             const full = ks.fullImage;
+            const hideTitle = !!full || !!ks.noTitle;
             return {
               id,
               screenshot: options.keepScreenshots ? existingScreenshots[i] || null : null,
@@ -272,7 +297,7 @@ export const useProjectStore = create<ProjectState>()(
                 subtitle: ks.subtitle || '',
                 showSubtitle: !!ks.showSubtitle,
                 ...(ks.titleOverride || {}),
-                layer: { visible: !full, opacity: 1, locked: false },
+                layer: { visible: !hideTitle, opacity: 1, locked: false },
               },
               device: {
                 ...defaultDevice,

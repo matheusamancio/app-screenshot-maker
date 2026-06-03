@@ -1,53 +1,42 @@
-import type { Slide, Language, LocalizationField, LocalizationCell } from '@/types';
-import { ALL_LANGUAGE_CODES, isBaseLanguage } from '@/lib/presets';
-
-const TITLE = 'Title';
-const SUBTITLE = 'Subtitle';
-
-function cellValue(slide: Slide, lang: Language, field: LocalizationField): string {
-  if (isBaseLanguage(lang)) {
-    return field === 'title' ? slide.title.text : slide.title.subtitle;
-  }
-  const loc = slide.localizations?.[lang];
-  return (field === 'title' ? loc?.title : loc?.subtitle) || '';
-}
+import type { Slide, Language, LocalizationCell } from '@/types';
+import { ALL_LANGUAGE_CODES } from '@/lib/presets';
+import { getLocalizableFields, fieldValue } from '@/lib/localizableFields';
 
 /** RFC-4180 field encode: quote when the value has a comma, quote, or newline. */
 function encodeField(value: string): string {
   const v = value ?? '';
-  if (/[",\n\r]/.test(v)) {
-    return `"${v.replace(/"/g, '""')}"`;
-  }
+  if (/[",\n\r]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
   return v;
 }
 
 /**
- * Build a localization CSV. One row per screen. For each locale a Title and a
- * Subtitle column, pre-filled with current text. A trailing `ID` column carries
- * the stable slide id so imports survive row reordering.
+ * Build a localization CSV — one row per localizable text field (title,
+ * subtitle, and every text component), one column per locale. The trailing
+ * FieldID column makes imports exact and reorder-safe. This doubles as the
+ * "fields you need to edit" spreadsheet template.
  */
 export function buildLocalizationCsv(slides: Slide[], locales: Language[]): string {
-  const header = [
-    'Screen',
-    ...locales.flatMap((l) => [`${l} ${TITLE}`, `${l} ${SUBTITLE}`]),
-    'ID',
-  ];
+  const fields = getLocalizableFields(slides);
+  const slideById = new Map(slides.map((s) => [s.id, s]));
+  const header = ['Screen', 'Field', ...locales, 'FieldID'];
   const lines = [header.map(encodeField).join(',')];
-  slides.forEach((slide, i) => {
+  for (const f of fields) {
+    const slide = slideById.get(f.slideId);
+    if (!slide) continue;
     const cells = [
-      `Slide ${i + 1}`,
-      ...locales.flatMap((l) => [cellValue(slide, l, 'title'), cellValue(slide, l, 'subtitle')]),
-      slide.id,
+      `Slide ${f.slideIndex + 1}`,
+      f.label,
+      ...locales.map((l) => fieldValue(slide, f, l)),
+      f.fieldId,
     ];
     lines.push(cells.map(encodeField).join(','));
-  });
-  // Prepend a UTF-8 BOM so Excel reads ja/ko/zh/ar correctly.
+  }
   return '﻿' + lines.join('\r\n');
 }
 
 /** RFC-4180 parser. Handles quoted fields, escaped quotes, and newlines in quotes. */
 export function parseCsv(text: string): string[][] {
-  const s = text.replace(/^﻿/, ''); // strip BOM
+  const s = text.replace(/^﻿/, '');
   const rows: string[][] = [];
   let row: string[] = [];
   let field = '';
@@ -82,7 +71,6 @@ export function parseCsv(text: string): string[][] {
       continue;
     }
     if (c === '\n' || c === '\r') {
-      // consume \r\n as a single break
       if (c === '\r' && s[i + 1] === '\n') i += 1;
       row.push(field);
       rows.push(row);
@@ -104,98 +92,67 @@ export function parseCsv(text: string): string[][] {
 export interface CsvImportResult {
   cells: LocalizationCell[];
   localesSeen: Language[];
-  stats: {
-    screensMatched: number;
-    matchedById: number;
-    matchedByOrder: number;
-    rowsSkipped: number;
-    unknownColumns: number;
-  };
+  stats: { fieldsMatched: number; rowsSkipped: number; unknownColumns: number };
 }
-
-type ColumnSpec =
-  | { kind: 'id' }
-  | { kind: 'screen' }
-  | { kind: 'cell'; lang: Language; field: LocalizationField }
-  | { kind: 'unknown' };
 
 function resolveCode(raw: string): Language | null {
   const lower = raw.trim().toLowerCase();
   return (ALL_LANGUAGE_CODES.find((c) => c.toLowerCase() === lower) as Language) || null;
 }
 
-function classifyHeader(h: string): ColumnSpec {
-  const head = h.trim();
-  const lower = head.toLowerCase();
-  if (lower === 'id') return { kind: 'id' };
-  if (lower === 'screen') return { kind: 'screen' };
-  const m = head.match(/^(.*\S)\s+(title|subtitle)$/i);
-  if (m) {
-    const code = resolveCode(m[1]);
-    if (code) return { kind: 'cell', lang: code, field: m[2].toLowerCase() as LocalizationField };
-  }
-  return { kind: 'unknown' };
+function parseFieldId(fieldId: string): { slideId: string; field: 'title' | 'subtitle' | 'element'; elementId?: string } | null {
+  const parts = fieldId.split(':');
+  if (parts.length < 2) return null;
+  const slideId = parts[0];
+  if (parts[1] === 'title') return { slideId, field: 'title' };
+  if (parts[1] === 'subtitle') return { slideId, field: 'subtitle' };
+  if (parts[1] === 'el' && parts[2]) return { slideId, field: 'element', elementId: parts[2] };
+  return null;
 }
 
-/**
- * Map parsed CSV rows onto localization cells. Rows match a slide by `ID` first
- * (reorder-safe), falling back to row order. Only non-empty cells are emitted so
- * imports never blank out existing text.
- */
-export function csvToCells(rows: string[][], slides: Slide[]): CsvImportResult {
-  const empty: CsvImportResult = {
-    cells: [],
-    localesSeen: [],
-    stats: { screensMatched: 0, matchedById: 0, matchedByOrder: 0, rowsSkipped: 0, unknownColumns: 0 },
-  };
-  if (!rows.length) return empty;
+/** Map a parsed field-based CSV onto localization cells, matched by FieldID. */
+export function csvToCells(rows: string[][]): CsvImportResult {
+  const empty: CsvImportResult = { cells: [], localesSeen: [], stats: { fieldsMatched: 0, rowsSkipped: 0, unknownColumns: 0 } };
+  if (rows.length < 2) return empty;
 
-  const cols = rows[0].map(classifyHeader);
-  const idCol = cols.findIndex((c) => c.kind === 'id');
-  const hasCellCols = cols.some((c) => c.kind === 'cell');
-  if (!hasCellCols) return empty;
-
-  const byId = new Map(slides.map((s) => [s.id, s]));
-  const dataRows = rows.slice(1).filter((r) => r.some((c) => (c || '').trim() !== ''));
+  const header = rows[0].map((h) => h.trim());
+  const cols = header.map((h) => {
+    const lower = h.toLowerCase();
+    if (lower === 'fieldid') return { kind: 'fieldid' as const };
+    if (lower === 'screen' || lower === 'field') return { kind: 'meta' as const };
+    const code = resolveCode(h);
+    if (code) return { kind: 'locale' as const, lang: code };
+    return { kind: 'unknown' as const };
+  });
+  const fieldIdCol = cols.findIndex((c) => c.kind === 'fieldid');
+  if (fieldIdCol < 0) return empty;
 
   const cells: LocalizationCell[] = [];
   const localesSeen = new Set<Language>();
-  let matchedById = 0;
-  let matchedByOrder = 0;
+  let fieldsMatched = 0;
   let rowsSkipped = 0;
 
-  dataRows.forEach((r, rowIndex) => {
-    const id = idCol >= 0 ? (r[idCol] || '').trim() : '';
-    let slide: Slide | undefined;
-    if (id && byId.has(id)) {
-      slide = byId.get(id);
-      matchedById += 1;
-    } else {
-      slide = slides[rowIndex];
-      if (slide) matchedByOrder += 1;
-    }
-    if (!slide) {
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row.some((c) => (c || '').trim() !== '')) continue;
+    const parsed = parseFieldId((row[fieldIdCol] || '').trim());
+    if (!parsed) {
       rowsSkipped += 1;
-      return;
+      continue;
     }
+    fieldsMatched += 1;
     cols.forEach((col, ci) => {
-      if (col.kind !== 'cell') return;
-      const v = r[ci];
+      if (col.kind !== 'locale') return;
+      const v = row[ci];
       if (v == null || v.trim() === '') return;
       localesSeen.add(col.lang);
-      cells.push({ slideId: slide!.id, lang: col.lang, field: col.field, value: v });
+      cells.push({ slideId: parsed.slideId, lang: col.lang, field: parsed.field, elementId: parsed.elementId, value: v });
     });
-  });
+  }
 
   return {
     cells,
     localesSeen: Array.from(localesSeen),
-    stats: {
-      screensMatched: matchedById + matchedByOrder,
-      matchedById,
-      matchedByOrder,
-      rowsSkipped,
-      unknownColumns: cols.filter((c) => c.kind === 'unknown').length,
-    },
+    stats: { fieldsMatched, rowsSkipped, unknownColumns: cols.filter((c) => c.kind === 'unknown').length },
   };
 }

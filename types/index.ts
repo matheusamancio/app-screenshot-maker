@@ -27,7 +27,10 @@ export type LocalizationField = 'title' | 'subtitle';
 export interface LocalizationCell {
   slideId: string;
   lang: Language;
-  field: LocalizationField;
+  /** 'title' | 'subtitle' for the built-in title, or 'element' for a text component. */
+  field: LocalizationField | 'element';
+  /** Target text-element id when field === 'element'. */
+  elementId?: string;
   value: string;
 }
 export type BackgroundType = 'solid' | 'linear-gradient' | 'radial-gradient' | 'image' | 'mesh' | 'none';
@@ -144,6 +147,8 @@ export interface SlideElement {
   fontFamily?: string;
   /** Text box width in baseline px (auto when omitted). */
   width?: number;
+  /** Per-language text overrides (text elements only). */
+  loc?: Partial<Record<Language, string>>;
   // emoji
   emoji?: string;
   /** Render the emoji on a white rounded tile. */
@@ -234,6 +239,8 @@ export interface ProjectState {
   updateLocalization: (slideId: string, lang: Language, entry: LocalizationEntry) => void;
   /** Set a single localized field, routing the base language to the slide's own text. */
   setLocalizedText: (slideId: string, lang: Language, field: LocalizationField, value: string) => void;
+  /** Set a text component's value for a language (base language writes element.text). */
+  setElementLocalizedText: (slideId: string, elementId: string, lang: Language, value: string) => void;
   /** Apply many localized cells at once (used by grid block-paste). */
   applyLocalizationCells: (cells: LocalizationCell[]) => void;
   updateGlobals: (g: Partial<GlobalSettings>) => void;

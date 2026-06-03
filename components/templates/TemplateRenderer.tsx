@@ -114,6 +114,7 @@ export default function TemplateRenderer({
       <ElementsLayer
         elements={slide.elements}
         sf={sf}
+        language={language}
         fontFamily={fontFamilyOverride || slide.title.fontFamily}
         onSelect={onElementSelect}
         onTextChange={onElementTextChange}

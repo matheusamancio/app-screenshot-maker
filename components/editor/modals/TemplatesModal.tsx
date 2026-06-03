@@ -16,6 +16,7 @@ interface Props {
 function kitToSlide(kit: StarterKit, idx: number): Slide {
   const ks = kit.slides[idx % kit.slides.length];
   const full = ks.fullImage;
+  const hideTitle = !!full || !!ks.noTitle;
   return {
     id: `${kit.id}-${idx}`,
     screenshot: null,
@@ -34,7 +35,7 @@ function kitToSlide(kit: StarterKit, idx: number): Slide {
       alignment: kit.title.alignment,
       position: 'top',
       floatingPosition: 'top',
-      layer: { visible: !full, opacity: 1, locked: false },
+      layer: { visible: !hideTitle, opacity: 1, locked: false },
     },
     device: {
       frameType: kit.device.frameType,

@@ -1,13 +1,36 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import type { SlideElement } from '@/types';
+import type { SlideElement, Language } from '@/types';
+import { BASE_LANGUAGE } from '@/types';
 import { fontFamilyFor } from '@/lib/fonts';
+import { readableTextColor } from './EditablePillText';
+
+export function resolveElementText(el: SlideElement, language?: Language): string {
+  if (language && language !== BASE_LANGUAGE && el.loc && el.loc[language]) return el.loc[language] as string;
+  return el.text || '';
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** Render `[keyword]` segments as filled pills (like the pill template). */
+function pillifyHtml(text: string, color: string): string {
+  const pillColor = readableTextColor(color);
+  const pill = (w: string) =>
+    `<span style="display:inline-block;background:${color};color:${pillColor};padding:0.04em 0.32em;border-radius:0.26em;line-height:1.04;">${w}</span>`;
+  return text
+    .split('\n')
+    .map((line) => (line ? escapeHtml(line).replace(/\[([^\]]+)\]/g, (_, w) => pill(w)) : '<br>'))
+    .join('<br>');
+}
 
 export interface ElementsLayerProps {
   elements?: SlideElement[];
   /** width / BASE_W */
   sf: number;
+  language?: Language;
   /** Interactive editing handlers (omitted in export/preview → static render). */
   onSelect?: (sel: string) => void;
   onTextChange?: (id: string, text: string) => void;
@@ -87,7 +110,7 @@ function EditingBox({
   );
 }
 
-export default function ElementsLayer({ elements, sf, onSelect, onTextChange, onEditStart, onEditEnd, editingId, fontFamily }: ElementsLayerProps) {
+export default function ElementsLayer({ elements, sf, language, onSelect, onTextChange, onEditStart, onEditEnd, editingId, fontFamily }: ElementsLayerProps) {
   if (!elements || elements.length === 0) return null;
   const interactive = !!onSelect;
 
@@ -162,12 +185,13 @@ export default function ElementsLayer({ elements, sf, onSelect, onTextChange, on
           width: el.width ? el.width * sf : undefined,
           letterSpacing: '-0.01em',
         };
+        const shown = resolveElementText(el, language);
         return (
           <div key={el.id} style={common} {...handlers}>
             {editing ? (
-              <EditingBox value={el.text || ''} onChange={(v) => onTextChange?.(el.id, v)} onDone={() => onEditEnd?.()} style={textStyle} />
+              <EditingBox value={shown} onChange={(v) => onTextChange?.(el.id, v)} onDone={() => onEditEnd?.()} style={textStyle} />
             ) : (
-              <div style={textStyle}>{el.text}</div>
+              <div style={textStyle} dangerouslySetInnerHTML={{ __html: pillifyHtml(shown, el.color || '#111111') }} />
             )}
           </div>
         );
