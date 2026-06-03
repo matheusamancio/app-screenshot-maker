@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { useProjectStore } from '@/store/projectStore';
-import type { Slide, Alignment } from '@/types';
-import { newTextElement, newEmojiElement } from '@/lib/elements';
+import type { Slide, Alignment, SlideElement } from '@/types';
+import { newTextElement, newEmojiElement, kindLabel } from '@/lib/elements';
 import ColorPicker from '../../ui/ColorPicker';
 import Slider from '../../ui/Slider';
 
@@ -61,9 +61,9 @@ export default function ElementsPanel({ slide }: { slide: Slide }) {
                 selId === el.id ? 'border-norte-primary bg-norte-primary-light' : 'border-border-default bg-overlay hover:bg-muted'
               }`}
             >
-              <span className="text-base w-5 text-center">{el.kind === 'emoji' ? el.emoji : 'T'}</span>
+              <span className="text-base w-5 text-center">{el.kind === 'emoji' ? el.emoji : el.kind === 'text' ? 'T' : '◫'}</span>
               <span className="text-xs text-secondary truncate flex-1">
-                {el.kind === 'emoji' ? 'Sticker' : el.text || 'Text'}
+                {el.kind === 'text' ? el.text || 'Text' : kindLabel(el.kind)}
               </span>
               <span className="text-[10px] text-text-muted">#{i + 1}</span>
             </button>
@@ -74,7 +74,7 @@ export default function ElementsPanel({ slide }: { slide: Slide }) {
       {sel && (
         <div className="border-t border-border-default pt-3 space-y-3">
           <div className="flex items-center justify-between">
-            <div className="section-label">{sel.kind === 'emoji' ? 'Sticker' : 'Text'} settings</div>
+            <div className="section-label">{kindLabel(sel.kind)} settings</div>
             <div className="flex gap-1.5">
               <button onClick={() => copyElement(slide.id, sel.id)} className="text-[11px] px-2 py-1 rounded bg-muted border border-border-default text-secondary hover:bg-overlay">Copy</button>
               <button onClick={() => deleteElement(slide.id, sel.id)} className="text-[11px] px-2 py-1 rounded bg-muted border border-border-default text-text-muted hover:text-error">Delete</button>
@@ -126,7 +126,7 @@ export default function ElementsPanel({ slide }: { slide: Slide }) {
                 </div>
               </div>
             </>
-          ) : (
+          ) : sel.kind === 'emoji' ? (
             <>
               <input
                 value={sel.emoji || ''}
@@ -145,6 +145,8 @@ export default function ElementsPanel({ slide }: { slide: Slide }) {
                 <Toggle on={!!sel.check} onToggle={() => updateElement(slide.id, sel.id, { check: !sel.check })} />
               </div>
             </>
+          ) : (
+            <ComponentEditor sel={sel} update={(patch) => updateElement(slide.id, sel.id, patch)} />
           )}
         </div>
       )}
@@ -157,5 +159,120 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
     <button onClick={onToggle} className={`h-6 w-10 rounded-full transition-all ${on ? 'bg-norte-primary' : 'bg-muted'}`}>
       <span className={`block w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
     </button>
+  );
+}
+
+function TextField({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full h-9 px-2.5 text-sm bg-surface border border-border-default rounded-md text-secondary focus:border-norte-primary focus:outline-none"
+    />
+  );
+}
+
+const ICON_OPTIONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play'];
+
+function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: Partial<SlideElement>) => void }) {
+  const box = sel.kind === 'shape' || sel.kind === 'card';
+  return (
+    <div className="space-y-3">
+      {(sel.kind === 'shape' || sel.kind === 'card' || sel.kind === 'heatmap' || sel.kind === 'datestrip') && (
+        <Slider label="Width" value={sel.w || 200} min={40} max={360} suffix="px" onChange={(v) => update({ w: v })} />
+      )}
+      {box && <Slider label="Height" value={sel.h || 120} min={40} max={420} suffix="px" onChange={(v) => update({ h: v })} />}
+      {box && (
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <div className="section-label mb-1.5">Background</div>
+            <ColorPicker color={sel.bg || '#1C1C1E'} onChange={(c) => update({ bg: c })} />
+          </div>
+          <div>
+            <div className="section-label mb-1.5">Radius</div>
+            <Slider label="" value={sel.radius ?? 20} min={0} max={48} onChange={(v) => update({ radius: v })} />
+          </div>
+        </div>
+      )}
+
+      {sel.kind === 'card' && (
+        <>
+          <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="Label (small caps)" />
+          <TextField value={sel.cardValue || ''} onChange={(v) => update({ cardValue: v })} placeholder="Big value" />
+          <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Caption" />
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Value size" value={sel.fontSize || 40} min={14} max={72} suffix="px" onChange={(v) => update({ fontSize: v })} />
+            <div>
+              <div className="section-label mb-1.5">Accent</div>
+              <ColorPicker color={sel.accent || '#FFFFFF'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
+        </>
+      )}
+
+      {sel.kind === 'heatmap' && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Columns" value={sel.cols || 12} min={4} max={20} onChange={(v) => update({ cols: v })} />
+            <Slider label="Rows" value={sel.rows || 7} min={3} max={12} onChange={(v) => update({ rows: v })} />
+          </div>
+          <Slider label="Fill" value={Math.round((sel.fill ?? 0.5) * 100)} min={0} max={100} suffix="%" onChange={(v) => update({ fill: v / 100 })} />
+          <div>
+            <div className="section-label mb-1.5">Filled cell colour</div>
+            <ColorPicker color={sel.cell || '#1C1C1E'} onChange={(c) => update({ cell: c })} />
+          </div>
+        </>
+      )}
+
+      {sel.kind === 'icon' && (
+        <>
+          <div>
+            <div className="section-label mb-1.5">Icon</div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {ICON_OPTIONS.map((ic) => (
+                <button key={ic} onClick={() => update({ icon: ic })} className={`py-2 rounded-md text-[11px] border ${sel.icon === ic ? 'border-norte-primary bg-norte-primary-light text-norte-primary' : 'border-border-default bg-overlay text-secondary'}`}>{ic}</button>
+              ))}
+            </div>
+          </div>
+          <Slider label="Size" value={sel.w || 40} min={16} max={120} suffix="px" onChange={(v) => update({ w: v, h: v })} />
+          <div>
+            <div className="section-label mb-1.5">Colour</div>
+            <ColorPicker color={sel.color || '#111111'} onChange={(c) => update({ color: c })} />
+          </div>
+        </>
+      )}
+
+      {sel.kind === 'stars' && (
+        <>
+          <Slider label="Count" value={sel.cols || 5} min={1} max={5} onChange={(v) => update({ cols: v })} />
+          <Slider label="Size" value={sel.size || 16} min={10} max={40} suffix="px" onChange={(v) => update({ size: v })} />
+          <div>
+            <div className="section-label mb-1.5">Colour</div>
+            <ColorPicker color={sel.color || '#111111'} onChange={(c) => update({ color: c })} />
+          </div>
+        </>
+      )}
+
+      {sel.kind === 'laurel' && (
+        <>
+          <TextField value={sel.cardValue || ''} onChange={(v) => update({ cardValue: v })} placeholder="+38,420" />
+          <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Hábitos cumpridos" />
+          <Slider label="Size" value={sel.size || 56} min={28} max={120} suffix="px" onChange={(v) => update({ size: v })} />
+          <div>
+            <div className="section-label mb-1.5">Colour</div>
+            <ColorPicker color={sel.color || '#111111'} onChange={(c) => update({ color: c })} />
+          </div>
+        </>
+      )}
+
+      {sel.kind === 'datestrip' && (
+        <>
+          <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="Q,S,S,D,S,T" />
+          <TextField value={sel.dates || ''} onChange={(v) => update({ dates: v })} placeholder="28,29,30,31,1,2" />
+          <Slider label="Highlight" value={sel.activeIndex ?? 5} min={0} max={9} onChange={(v) => update({ activeIndex: v })} />
+        </>
+      )}
+    </div>
   );
 }

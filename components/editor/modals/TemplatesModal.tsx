@@ -16,7 +16,8 @@ interface Props {
 function kitToSlide(kit: StarterKit, idx: number): Slide {
   const ks = kit.slides[idx % kit.slides.length];
   const full = ks.fullImage;
-  const hideTitle = !!full || !!ks.noTitle;
+  const hideTitle = !!full || !!ks.noTitle || !!ks.noChrome;
+  const hideDevice = !!full || !!ks.noChrome;
   return {
     id: `${kit.id}-${idx}`,
     screenshot: null,

@@ -127,7 +127,7 @@ export interface HabitHeroConfig {
   exploded?: boolean;
 }
 
-export type ElementKind = 'text' | 'emoji';
+export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip';
 
 /** A free-floating, movable component placed on a slide (on top of the template). */
 export interface SlideElement {
@@ -157,6 +157,41 @@ export interface SlideElement {
   check?: boolean;
   /** Tile / emoji size in baseline px. */
   size?: number;
+
+  // box-based components (shape / heatmap / card / stars / datestrip)
+  /** Box size in baseline px. */
+  w?: number;
+  h?: number;
+  /** Fill / background colour. */
+  bg?: string;
+  /** Corner radius in baseline px. */
+  radius?: number;
+
+  // card (dark/light widget with title + big value + caption)
+  cardTitle?: string;
+  cardValue?: string;
+  cardCaption?: string;
+  /** Accent colour for the value/icon. */
+  accent?: string;
+
+  // heatmap grid
+  cols?: number;
+  rows?: number;
+  /** 0..1 fraction of filled cells. */
+  fill?: number;
+  /** Active-cell colour (inactive derived). */
+  cell?: string;
+
+  // icon (named svg)
+  icon?: string;
+
+  // datestrip
+  /** Comma-separated day labels, e.g. "Q,S,S,D,S,T". */
+  days?: string;
+  /** Comma-separated numbers, e.g. "28,29,30,31,1,2". */
+  dates?: string;
+  /** Index (0-based) of the highlighted day. */
+  activeIndex?: number;
 }
 
 export type SlideRole = 'hero' | 'use-case' | 'differentiator' | 'secondary' | 'proof' | 'cta';

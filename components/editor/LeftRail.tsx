@@ -2,7 +2,20 @@
 
 import React, { useRef, useState } from 'react';
 import { useProjectStore } from '@/store/projectStore';
-import { newTextElement, newEmojiElement } from '@/lib/elements';
+import {
+  newTextElement,
+  newEmojiElement,
+  newShape,
+  newHeatmap,
+  newIconEl,
+  newStarsEl,
+  newLaurelEl,
+  newDateStrip,
+  newStreakWidget,
+  newStatCard,
+  newNotification,
+} from '@/lib/elements';
+import type { SlideElement } from '@/types';
 import { fileToBase64 } from '@/lib/utils';
 import BackgroundPanel from './panels/BackgroundPanel';
 import { useToast } from '../ui/Toast';
@@ -43,6 +56,23 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
   const addSticker = (emoji: string) => {
     addElement(activeSlideId, newEmojiElement(195, 300, emoji));
   };
+
+  const add = (el: SlideElement) => {
+    addElement(activeSlideId, el);
+    toast('Added to this screen', 'success');
+  };
+
+  const COMPONENTS: { label: string; make: () => SlideElement }[] = [
+    { label: 'Heatmap', make: () => newHeatmap() },
+    { label: 'Streak widget', make: () => newStreakWidget() },
+    { label: 'Notification', make: () => newNotification() },
+    { label: 'Stat card', make: () => newStatCard() },
+    { label: 'Date strip', make: () => newDateStrip() },
+    { label: 'Rounded box', make: () => newShape() },
+    { label: 'Stars', make: () => newStarsEl() },
+    { label: 'Laurel rating', make: () => newLaurelEl() },
+  ];
+  const ICONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play'];
 
   const onUpload = async (file: File | undefined) => {
     if (!file) return;
@@ -94,16 +124,38 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
               </div>
             )}
             {tab === 'elements' && (
-              <div>
-                <div className="section-label mb-2">Stickers</div>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {STICKERS.map((e) => (
-                    <button key={e} onClick={() => addSticker(e)} className="aspect-square rounded-md bg-overlay hover:bg-muted border border-border-default flex items-center justify-center text-xl">
-                      {e}
-                    </button>
-                  ))}
+              <div className="space-y-4">
+                <div>
+                  <div className="section-label mb-2">Norte components</div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {COMPONENTS.map((c) => (
+                      <button key={c.label} onClick={() => add(c.make())} className="px-2 py-2.5 rounded-md bg-overlay hover:bg-muted border border-border-default text-xs font-medium text-secondary text-left">
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-[11px] text-text-muted leading-relaxed pt-3">Click a sticker to drop it on the active screen. Toggle its white tile / check badge in the Components panel on the right.</p>
+                <div>
+                  <div className="section-label mb-2">Icons</div>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {ICONS.map((ic) => (
+                      <button key={ic} onClick={() => add(newIconEl(195, 400, ic))} title={ic} className="aspect-square rounded-md bg-overlay hover:bg-muted border border-border-default flex items-center justify-center text-text-muted">
+                        <NorteIconPreview name={ic} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="section-label mb-2">Stickers</div>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {STICKERS.map((e) => (
+                      <button key={e} onClick={() => addSticker(e)} className="aspect-square rounded-md bg-overlay hover:bg-muted border border-border-default flex items-center justify-center text-xl">
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-[11px] text-text-muted leading-relaxed">Every component is movable and editable — drag on the canvas, tweak it in the right panel, reuse it on any screen with ⌘C/⌘V.</p>
               </div>
             )}
             {tab === 'background' && <BackgroundPanel slide={activeSlide} />}
@@ -142,3 +194,17 @@ function IconElements() { return (<svg {...svg}><rect x="3" y="3" width="7" heig
 function IconText() { return (<svg {...svg}><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg>); }
 function IconBg() { return (<svg {...svg}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>); }
 function IconUpload() { return (<svg {...svg}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>); }
+
+function NorteIconPreview({ name }: { name: string }) {
+  const p = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  switch (name) {
+    case 'check': return (<svg {...p}><polyline points="20 6 9 17 4 12" /></svg>);
+    case 'fire': return (<svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C9 6 7 8 7 12a5 5 0 0 0 10 0c0-1.5-.5-3-1.5-4 0 1.5-1 2-2 2 .5-2-.5-5-1.5-6z" /></svg>);
+    case 'lock': return (<svg {...p}><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>);
+    case 'bell': return (<svg {...p}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>);
+    case 'mountain': return (<svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor"><path d="M3 20 9 8l3 5 2-3 4 10z" /><circle cx="14" cy="3.5" r="1.4" /></svg>);
+    case 'plus': return (<svg {...p}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>);
+    case 'play': return (<svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>);
+    default: return (<svg {...p}><circle cx="12" cy="12" r="9" /></svg>);
+  }
+}

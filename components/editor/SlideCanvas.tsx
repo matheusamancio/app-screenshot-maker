@@ -7,6 +7,7 @@ import TemplateRenderer from '../templates/TemplateRenderer';
 import TransformController from './TransformController';
 import type { Slide, Language, ElementTransform } from '@/types';
 import { BASE_LANGUAGE, IDENTITY_TRANSFORM } from '@/types';
+import { kindLabel } from '@/lib/elements';
 
 interface Props {
   slide: Slide;
@@ -179,7 +180,7 @@ export default function SlideCanvas({ slide, width, active, onActivate, language
             scaleFactor={scaleFactor}
             computedScale={computedScale}
             selected={editingElementId ? null : selected}
-            label={selectedEl ? (selectedEl.kind === 'emoji' ? 'Sticker' : 'Text') : selected || ''}
+            label={selectedEl ? kindLabel(selectedEl.kind) : selected || ''}
             isElement={!!selectedEl}
             transform={currentTransform}
             measureTick={measureTick}
