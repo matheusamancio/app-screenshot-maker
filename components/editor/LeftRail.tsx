@@ -7,6 +7,7 @@ import {
   newEmojiElement,
   newHabitTile,
   newShape,
+  newShapeKind,
   newHeatmap,
   newHeatmapCard,
   newBarChart,
@@ -17,6 +18,7 @@ import {
   newButton,
   newBlurPanel,
   newPhone,
+  newPhoneFrame,
   newHabitRow,
   newIconEl,
   newStarsEl,
@@ -71,6 +73,18 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
     addElement(activeSlideId, newEmojiElement(195, 300, emoji));
   };
 
+  const SHAPES: { id: 'square' | 'rounded' | 'circle' | 'pill' | 'triangle' | 'diamond' | 'hexagon' | 'star' | 'line'; label: string }[] = [
+    { id: 'square', label: 'Square' },
+    { id: 'rounded', label: 'Rounded' },
+    { id: 'circle', label: 'Circle' },
+    { id: 'pill', label: 'Pill' },
+    { id: 'triangle', label: 'Triangle' },
+    { id: 'diamond', label: 'Diamond' },
+    { id: 'hexagon', label: 'Hexagon' },
+    { id: 'star', label: 'Star' },
+    { id: 'line', label: 'Line' },
+  ];
+
   const addHabitTile = (emoji: string) => {
     addElement(activeSlideId, newHabitTile(195, 300, emoji));
     toast('Habit tile added to this screen', 'success');
@@ -83,7 +97,8 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
   };
 
   const COMPONENTS: { label: string; make: () => SlideElement }[] = [
-    { label: 'iPhone', make: () => newPhone() },
+    { label: 'iPhone', make: () => newPhoneFrame() },
+    { label: 'iPhone (dark)', make: () => newPhone() },
     { label: 'Habit row', make: () => newHabitRow() },
     { label: 'Norte logo', make: () => newNorteLogo(195, 360, false) },
     { label: 'Norte logo ✓', make: () => newNorteLogo(195, 360, true) },
@@ -159,6 +174,21 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
             )}
             {tab === 'elements' && (
               <div className="space-y-4">
+                <div>
+                  <div className="section-label mb-2">Shapes</div>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {SHAPES.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => add(newShapeKind(s.id))}
+                        title={s.label}
+                        className="aspect-square rounded-md bg-overlay hover:bg-muted border border-border-default flex items-center justify-center text-secondary"
+                      >
+                        <ShapeGlyph id={s.id} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div>
                   <div className="section-label mb-2">Norte components</div>
                   <div className="grid grid-cols-2 gap-1.5">
@@ -259,5 +289,21 @@ function NorteIconPreview({ name }: { name: string }) {
     case 'plus': return (<svg {...p}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>);
     case 'play': return (<svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>);
     default: return (<svg {...p}><circle cx="12" cy="12" r="9" /></svg>);
+  }
+}
+
+function ShapeGlyph({ id }: { id: string }) {
+  const p = { width: 20, height: 20, viewBox: '0 0 24 24', fill: '#3a3a3a' as const };
+  switch (id) {
+    case 'square': return (<svg {...p}><rect x="4" y="4" width="16" height="16" rx="1.5" /></svg>);
+    case 'rounded': return (<svg {...p}><rect x="3" y="6" width="18" height="12" rx="4.5" /></svg>);
+    case 'circle': return (<svg {...p}><circle cx="12" cy="12" r="8.5" /></svg>);
+    case 'pill': return (<svg {...p}><rect x="2.5" y="8" width="19" height="8" rx="4" /></svg>);
+    case 'triangle': return (<svg {...p}><path d="M12 4 21 20H3z" strokeLinejoin="round" /></svg>);
+    case 'diamond': return (<svg {...p}><path d="M12 3 21 12 12 21 3 12z" strokeLinejoin="round" /></svg>);
+    case 'hexagon': return (<svg {...p}><path d="M7 4h10l4 8-4 8H7l-4-8z" strokeLinejoin="round" /></svg>);
+    case 'star': return (<svg {...p}><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.2L12 17l-5.6 3 1.4-6.2L3 9.5l6.4-.6z" strokeLinejoin="round" /></svg>);
+    case 'line': return (<svg width={20} height={20} viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="2.5" rx="1.25" fill="#3a3a3a" /></svg>);
+    default: return (<svg {...p}><rect x="4" y="4" width="16" height="16" rx="2" /></svg>);
   }
 }

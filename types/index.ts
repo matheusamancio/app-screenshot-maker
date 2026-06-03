@@ -184,6 +184,12 @@ export interface SlideElement {
   bg2?: string;
   /** Corner radius in baseline px. */
   radius?: number;
+  /** Shape geometry (shape kind). Defaults to 'rect'. */
+  shapeType?: 'rect' | 'circle' | 'pill' | 'triangle' | 'diamond' | 'hexagon' | 'star' | 'line';
+  /** 0..1 element opacity (applies to any element kind). */
+  opacity?: number;
+  /** Drop-shadow strength in baseline px (0 / undefined = none). Applies to any element kind. */
+  shadow?: number;
 
   // card (dark/light widget with title + big value + caption)
   cardTitle?: string;
@@ -210,6 +216,9 @@ export interface SlideElement {
   /** Active-cell colour (inactive derived). */
   cell?: string;
 
+  /** Shared id linking elements into a group (selected/moved together). */
+  groupId?: string;
+
   // icon (named svg) — optionally on a rounded/circular tile with a check badge
   icon?: string;
 
@@ -224,6 +233,8 @@ export interface SlideElement {
   // phone (device frame)
   /** Show the dynamic-island pill near the top (phone). */
   island?: boolean;
+  /** Phone visual: 'gradient' (decorative dark→grey) or 'frame' (realistic bezel + light screen + status bar). */
+  phoneStyle?: 'gradient' | 'frame';
 
   // widget (lock-screen / home-screen Norte widgets)
   /** Widget layout: today list · done square · month heatmap square. */
@@ -362,6 +373,24 @@ export interface ProjectState {
   /** Currently selected on-canvas thing: 'title' | 'device' | `el:<id>` | null. */
   selectedElementId: string | null;
   setSelectedElement: (sel: string | null) => void;
+  /** Multi-selection of element ids (for group move/resize). Mirrors selectedElementId for single selection. */
+  selectedIds?: string[];
+  /** Add/remove an element id from the multi-selection (shift/⌘-click). */
+  toggleSelectedId: (id: string) => void;
+  /** Apply patches to many elements at once (group transforms). */
+  applyElementPatches: (slideId: string, patches: Record<string, Partial<SlideElement>>) => void;
+  /** Delete every element in the current multi-selection. */
+  deleteSelectedElements: (slideId: string) => void;
+  /** Replace the multi-selection with the given element ids. */
+  setSelectedIds: (ids: string[]) => void;
+  /** Change an element's z-order within its slide. */
+  reorderElement: (slideId: string, elementId: string, where: 'front' | 'back' | 'forward' | 'backward') => void;
+  /** Duplicate an element in place (offset + selected). */
+  duplicateElement: (slideId: string, elementId: string) => void;
+  /** Link the given elements into a group (selected & moved together). */
+  groupElements: (slideId: string, ids: string[]) => void;
+  /** Remove the given elements from their group. */
+  ungroupElements: (slideId: string, ids: string[]) => void;
   clipboardElement: SlideElement | null;
   addElement: (slideId: string, element: SlideElement, opts?: { select?: boolean }) => void;
   updateElement: (slideId: string, elementId: string, patch: Partial<SlideElement>) => void;

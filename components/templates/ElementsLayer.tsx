@@ -33,7 +33,7 @@ export interface ElementsLayerProps {
   sf: number;
   language?: Language;
   /** Interactive editing handlers (omitted in export/preview → static render). */
-  onSelect?: (sel: string) => void;
+  onSelect?: (sel: string, additive?: boolean) => void;
   onTextChange?: (id: string, text: string) => void;
   onEditStart?: (id: string) => void;
   onEditEnd?: () => void;
@@ -41,6 +41,8 @@ export interface ElementsLayerProps {
   fontFamily?: string;
   /** Toggle a habit-row's check (flag/unflag) when its circle is clicked. */
   onToggleCheck?: (id: string) => void;
+  /** Right-click on an element → open a context menu at the cursor. */
+  onContextMenu?: (id: string, x: number, y: number) => void;
 }
 
 /** Deterministic scatter fill for the heatmap (stable across renders). */
@@ -150,6 +152,28 @@ function hexToRgba(hex: string, a: number): string {
   const f = m.length === 3 ? m.split('').map((c) => c + c).join('') : m;
   const r = parseInt(f.slice(0, 2), 16), g = parseInt(f.slice(2, 4), 16), b = parseInt(f.slice(4, 6), 16);
   return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+/** Polygon points for SVG shapes, inset by `r` so the rounded-corner stroke stays inside the box. */
+function shapePolyPoints(type: string, w: number, h: number, r: number): string {
+  const iw = Math.max(1, w - 2 * r);
+  const ih = Math.max(1, h - 2 * r);
+  const m = (nx: number, ny: number) => `${(r + nx * iw).toFixed(2)},${(r + ny * ih).toFixed(2)}`;
+  switch (type) {
+    case 'triangle': return [m(0.5, 0), m(1, 1), m(0, 1)].join(' ');
+    case 'diamond': return [m(0.5, 0), m(1, 0.5), m(0.5, 1), m(0, 0.5)].join(' ');
+    case 'hexagon': return [m(0.25, 0), m(0.75, 0), m(1, 0.5), m(0.75, 1), m(0.25, 1), m(0, 0.5)].join(' ');
+    case 'star': {
+      const pts: string[] = [];
+      for (let i = 0; i < 10; i++) {
+        const ang = -Math.PI / 2 + (i * Math.PI) / 5;
+        const rad = i % 2 === 0 ? 0.5 : 0.21;
+        pts.push(m(0.5 + Math.cos(ang) * rad, 0.5 + Math.sin(ang) * rad));
+      }
+      return pts.join(' ');
+    }
+    default: return [m(0, 0), m(1, 0), m(1, 1), m(0, 1)].join(' ');
+  }
 }
 
 /** Darken a hex colour toward black by `amt` (0..1) — used for readable pill text. */
@@ -501,7 +525,7 @@ function WidgetCard({ el, sf, editing, onTextChange, onEditEnd }: { el: SlideEle
   );
 }
 
-export default function ElementsLayer({ elements, sf, language, onSelect, onTextChange, onEditStart, onEditEnd, editingId, fontFamily, onToggleCheck }: ElementsLayerProps) {
+export default function ElementsLayer({ elements, sf, language, onSelect, onTextChange, onEditStart, onEditEnd, editingId, fontFamily, onToggleCheck, onContextMenu }: ElementsLayerProps) {
   if (!elements || elements.length === 0) return null;
   const interactive = !!onSelect;
 
@@ -517,6 +541,9 @@ export default function ElementsLayer({ elements, sf, language, onSelect, onText
           transformOrigin: 'center center',
           pointerEvents: interactive ? 'auto' : 'none',
           cursor: interactive ? (editing ? 'text' : 'move') : 'default',
+          // Universal opacity + drop-shadow (works for text, emoji, SVG and boxes alike)
+          opacity: el.opacity ?? 1,
+          filter: el.shadow ? `drop-shadow(0 ${el.shadow * 0.45 * sf}px ${el.shadow * sf}px rgba(0,0,0,0.32))` : undefined,
         };
 
         const handlers = interactive
@@ -524,12 +551,18 @@ export default function ElementsLayer({ elements, sf, language, onSelect, onText
               'data-element': `el:${el.id}`,
               onPointerDown: (e: React.PointerEvent) => {
                 if (editing) return;
+                if (e.button !== 0) return; // ignore right/middle click (keeps selection for the context menu)
                 e.preventDefault();
-                onSelect?.(`el:${el.id}`);
+                onSelect?.(`el:${el.id}`, e.shiftKey || e.metaKey || e.ctrlKey);
               },
               onDoubleClick: (e: React.MouseEvent) => {
                 e.stopPropagation();
                 onEditStart?.(el.id);
+              },
+              onContextMenu: (e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onContextMenu?.(el.id, e.clientX, e.clientY);
               },
             }
           : { 'data-element': `el:${el.id}` };
@@ -572,8 +605,61 @@ export default function ElementsLayer({ elements, sf, language, onSelect, onText
           let content: React.ReactNode = null;
 
           if (el.kind === 'shape') {
-            const fill = el.bg2 ? `linear-gradient(180deg, ${el.bg || '#1C1C1E'}, ${el.bg2})` : el.bg || '#1C1C1E';
-            content = <div style={{ width: w, height: h, background: fill, borderRadius: (el.radius ?? 20) * sf }} />;
+            const st = el.shapeType || 'rect';
+            const color = el.bg || '#1C1C1E';
+            const fill = el.bg2 ? `linear-gradient(180deg, ${color}, ${el.bg2})` : color;
+            if (st === 'line') {
+              content = <div style={{ width: w, height: Math.max(2 * sf, (el.radius ?? 4) * sf), background: color, borderRadius: 999 }} />;
+            } else {
+              let fillNode: React.ReactNode;
+              if (st === 'rect' || st === 'circle' || st === 'pill') {
+                const br = st === 'circle' ? '50%' : st === 'pill' ? Math.min(w, h) / 2 : (el.radius ?? 20) * sf;
+                fillNode = <div style={{ position: 'absolute', inset: 0, background: fill, borderRadius: br }} />;
+              } else {
+                const r = (el.radius ?? 0) * sf;
+                const pts = shapePolyPoints(st, w, h, r);
+                const gid = `shg-${el.id}`;
+                const paint = el.bg2 ? `url(#${gid})` : color;
+                fillNode = (
+                  <svg width={w} height={h} style={{ position: 'absolute', inset: 0, overflow: 'visible', display: 'block' }}>
+                    {el.bg2 && (
+                      <defs>
+                        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0" stopColor={color} />
+                          <stop offset="1" stopColor={el.bg2} />
+                        </linearGradient>
+                      </defs>
+                    )}
+                    <polygon points={pts} fill={paint} stroke={r > 0 ? paint : 'none'} strokeWidth={r * 2} strokeLinejoin="round" />
+                  </svg>
+                );
+              }
+              // Editable label constrained inside the shape
+              const label = resolveElementText(el, language);
+              const labelColor = el.color || readableTextColor(color);
+              const just = el.align === 'left' ? 'flex-start' : el.align === 'right' ? 'flex-end' : 'center';
+              const labelStyle: React.CSSProperties = {
+                fontFamily: fam,
+                fontSize: (el.fontSize || 16) * sf,
+                fontWeight: el.fontWeight || 700,
+                color: labelColor,
+                textAlign: el.align || 'center',
+                lineHeight: 1.2,
+                whiteSpace: 'pre-wrap',
+                letterSpacing: '-0.01em',
+                maxWidth: w - 16 * sf,
+              };
+              content = (
+                <div style={{ position: 'relative', width: w, height: h, display: 'flex', alignItems: 'center', justifyContent: just }}>
+                  {fillNode}
+                  {editing ? (
+                    <EditingBox value={label} onChange={(v) => onTextChange?.(el.id, v)} onDone={() => onEditEnd?.()} style={{ ...labelStyle, position: 'relative', zIndex: 1 }} />
+                  ) : (
+                    label && <div style={{ ...labelStyle, position: 'relative', zIndex: 1 }}>{label}</div>
+                  )}
+                </div>
+              );
+            }
           } else if (el.kind === 'icon') {
             if (el.tile) {
               const ts = (el.size || 64) * sf;
@@ -602,37 +688,79 @@ export default function ElementsLayer({ elements, sf, language, onSelect, onText
               <div style={{ width: w, height: h, borderRadius: (el.radius ?? 16) * sf, backdropFilter: `blur(${(el.blur || 7) * sf}px)`, WebkitBackdropFilter: `blur(${(el.blur || 7) * sf}px)`, background: 'rgba(244,242,232,0.22)' }} />
             );
           } else if (el.kind === 'phone') {
-            const top = el.bg || '#000000';
-            const bottom = el.bg2 || '#A6A6A6';
-            content = (
+            const radius = (el.radius ?? 46) * sf;
+            const island = el.island !== false && (
               <div
                 style={{
-                  width: w,
-                  height: h,
-                  borderRadius: (el.radius ?? 46) * sf,
-                  background: `linear-gradient(180deg, ${top} 0%, ${top} 40%, ${bottom} 100%)`,
-                  boxShadow: `0 ${24 * sf}px ${60 * sf}px rgba(0,0,0,0.20), inset 0 0 0 ${1.5 * sf}px rgba(255,255,255,0.05)`,
-                  position: 'relative',
+                  position: 'absolute',
+                  top: h * 0.045,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: w * 0.33,
+                  height: Math.max(14 * sf, h * 0.042),
+                  background: '#000000',
+                  borderRadius: 999,
+                  zIndex: 2,
                 }}
-              >
-                {el.island !== false && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: h * 0.045,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: w * 0.33,
-                      height: Math.max(14 * sf, h * 0.042),
-                      background: '#000000',
-                      borderRadius: 999,
-                      // faint sheen so the pill reads against the black top
-                      boxShadow: `0 0 0 ${1 * sf}px rgba(255,255,255,0.07), inset 0 ${1 * sf}px ${2 * sf}px rgba(255,255,255,0.06)`,
-                    }}
-                  />
-                )}
-              </div>
+              />
             );
+            if (el.phoneStyle === 'frame') {
+              const bezel = el.bg || '#2B2B2D';
+              const screen = el.bg2 || '#EFEDE8';
+              const bw = Math.max(3 * sf, w * 0.022); // bezel width
+              const u = ((el.w || 240) / 240) * sf; // status-bar scale relative to a 240-wide frame
+              content = (
+                <div style={{ width: w, height: h, borderRadius: radius, background: bezel, padding: bw, boxSizing: 'border-box', boxShadow: `0 ${22 * sf}px ${55 * sf}px rgba(0,0,0,0.22)`, position: 'relative' }}>
+                  <div style={{ width: '100%', height: '100%', borderRadius: radius - bw, background: screen, position: 'relative', overflow: 'hidden', fontFamily: fontFamilyFor('Sora') }}>
+                    {island}
+                    {/* status bar — only when the frame carries an app name (a "pure"
+                        frame with cardTitle:'' is just bezel + screen, e.g. behind the
+                        Norte screens which provide their own status bar) */}
+                    {el.cardTitle && (
+                      <>
+                        <div style={{ position: 'absolute', top: 14 * u, left: 16 * u, fontSize: 13 * u, fontWeight: 700, color: '#1A1A1A' }}>{el.text || '9:41'}</div>
+                        <div style={{ position: 'absolute', top: 36 * u, left: 18 * u, fontFamily: MONO, fontSize: 10 * u, letterSpacing: '0.14em', color: '#1A1A1A' }}>
+                          {el.cardTitle}<span style={{ color: '#a8a49c' }}>°</span>
+                        </div>
+                        {/* avatar circle (top-right) */}
+                        <div style={{ position: 'absolute', top: 30 * u, right: 16 * u, width: 26 * u, height: 26 * u, borderRadius: '50%', background: '#1A1A1A' }} />
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            } else {
+              const top = el.bg || '#000000';
+              const bottom = el.bg2 || '#A6A6A6';
+              content = (
+                <div
+                  style={{
+                    width: w,
+                    height: h,
+                    borderRadius: radius,
+                    background: `linear-gradient(180deg, ${top} 0%, ${top} 40%, ${bottom} 100%)`,
+                    boxShadow: `0 ${24 * sf}px ${60 * sf}px rgba(0,0,0,0.20), inset 0 0 0 ${1.5 * sf}px rgba(255,255,255,0.05)`,
+                    position: 'relative',
+                  }}
+                >
+                  {el.island !== false && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: h * 0.045,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: w * 0.33,
+                        height: Math.max(14 * sf, h * 0.042),
+                        background: '#000000',
+                        borderRadius: 999,
+                        boxShadow: `0 0 0 ${1 * sf}px rgba(255,255,255,0.07), inset 0 ${1 * sf}px ${2 * sf}px rgba(255,255,255,0.06)`,
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            }
           } else if (el.kind === 'habitrow') {
             const u = sf * ((el.w || 356) / 356);
             const pad = 16 * u;

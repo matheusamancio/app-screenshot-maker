@@ -133,6 +133,37 @@ const near = (e: RawEl, x: number, y: number, tol = 5) =>
 const anyNear = (e: RawEl, pts: number[][], tol = 6) => pts.some(([x, y]) => near(e, x, y, tol));
 
 /**
+ * Swap the two raw dark phone-shell shapes (outer bezel + inner screen) for a
+ * single real iPhone-frame component (the addable `phone` / `phoneStyle:'frame'`).
+ * The frame is inserted at the BACK of the array (renders behind everything) and
+ * carries `cardTitle:''` so its built-in status chrome stays hidden — each Norte
+ * screen already provides its own 9:41 / NORTE status bar. Geometry is copied
+ * from the original bezel so all in-phone content stays pixel-aligned.
+ */
+function useNortePhoneFrame(els: RawEl[]): RawEl[] {
+  const bezel = els.find((e) => e.kind === 'shape' && e.bg === '#37373a' && (e.w || 0) >= 200);
+  if (!bezel) return els; // CTA screen has no phone
+  const bx = bezel.x || 195;
+  const screenTop = (bezel.y || 0) - (bezel.h || 0) / 2;
+  let innerColor = '#EFEDE8';
+  const out = els.filter((e) => {
+    if (e === bezel) return false; // outer bezel
+    if (e.kind === 'shape' && Math.abs((e.x || 0) - bx) <= 4 && (e.w || 0) >= 210 && (e.w || 0) <= 228 && (e.bg === '#19191b' || e.bg === '#efede8')) {
+      innerColor = e.bg === '#19191b' ? '#19191B' : '#EFEDE8'; // inner screen → frame screen color
+      return false;
+    }
+    // original dynamic-island / notch pill near the top, centered — the frame draws its own
+    if (e.kind === 'shape' && Math.abs((e.x || 0) - bx) <= 30 && (e.w || 0) >= 40 && (e.w || 0) <= 110 && (e.h || 0) <= 26 && (e.y || 0) < screenTop + 55 && ['#040405', '#000000', '#1a1a1a', '#19191b'].includes(e.bg || '')) return false;
+    return true;
+  });
+  const frame: RawEl = {
+    kind: 'phone', phoneStyle: 'frame', x: bx, y: bezel.y || 0, w: bezel.w || 233, h: bezel.h || 531,
+    radius: bezel.radius ?? 36, bg: '#2B2B2D', bg2: innerColor, island: true, cardTitle: '', rotation: 0, scale: 1,
+  };
+  return [frame, ...out]; // behind all content
+}
+
+/**
  * Swap the hand-built primitive clusters in each Norte screen for the polished,
  * reusable components (streak card, bar/line charts, framed heatmap, app logo,
  * button, lock badge, habit tiles). Runs after cleanNorteScreen.
@@ -152,7 +183,7 @@ function upgradeNorteScreen(els: RawEl[], i: number): RawEl[] {
     out = out.map((e) => (e.kind === 'emoji' && anyNear(e, tiles, 8) ? { ...e, tile: true, check: true, size: 58 } : e));
   } else if (i === 1) {
     // Compact habit list → Habit-row card components (check toggle + emoji + name + streak)
-    drop((e) => e.kind === 'shape' && (near(e, 195, 394, 7) || near(e, 195, 445, 7) || near(e, 195, 496, 7) || near(e, 118, 394, 7) || near(e, 118, 445, 7)));
+    drop((e) => e.kind === 'shape' && (e.w || 0) < 215 && (near(e, 195, 394, 7) || near(e, 195, 445, 7) || near(e, 195, 496, 7) || near(e, 118, 394, 7) || near(e, 118, 445, 7)));
     drop((e) => e.kind === 'text' && (near(e, 185, 388, 8) || near(e, 185, 402, 8) || near(e, 185, 439, 8) || near(e, 185, 453, 8) || near(e, 185, 490, 8) || near(e, 185, 505, 8)));
     const rowDef = (y: number, emoji: string, name: string, cap: string, on: boolean): Partial<RawEl> & { kind: SlideElement['kind']; x: number; y: number } =>
       ({ kind: 'habitrow', x: 195, y, w: 205, h: 44, radius: 12, bg: '#F6F4EF', color: '#1A1A1A', emoji, text: name, cardCaption: cap, check: on, cols: 0 });
@@ -196,6 +227,42 @@ function upgradeNorteScreen(els: RawEl[], i: number): RawEl[] {
     add({ kind: 'icon', icon: 'mountain', tile: true, x: 195, y: 365, size: 90, radius: 21, bg: '#1C1C1E', color: '#F4F2ED', check: true, accent: '#E8923C' });
     add({ kind: 'button', x: 195, y: 541, text: 'Get Norte — Free', showArrow: true, bg: '#1A1A1A', color: '#F4F2ED', fontSize: 15, radius: 23, h: 46 });
   }
+  return useNortePhoneFrame(out);
+}
+
+/**
+ * v2 — the refined Norte template. Builds on the v1 component upgrade and pushes
+ * closer to the source design: a 5-star rating on the hero, and the Gentle Nudges
+ * screen rebuilt as the lock-screen composition (notification banner + Today list
+ * widget + Done & Month widgets). All elements remain individually editable.
+ */
+function upgradeNorteScreenV2(els: RawEl[], i: number): RawEl[] {
+  let out = upgradeNorteScreen(cleanNorteScreen(els, i), i);
+  const add = (e: Partial<RawEl> & { kind: SlideElement['kind']; x: number; y: number }) =>
+    out.push({ rotation: 0, scale: 1, ...e } as RawEl);
+
+  if (i === 0) {
+    // 5-star rating row under "+38,420 · hábitos cumpridos"
+    add({ kind: 'stars', x: 195, y: 772, cols: 5, size: 9, color: '#1A1A1A' });
+  } else if (i === 3) {
+    // Gentle Nudges → notification + Today/Done/Month widgets
+    out = out.filter((e) => {
+      if (e.kind === 'phone') return true; // the iPhone frame component
+      if (e.kind === 'text' && (e.y || 0) < 135) return true; // headline + subtitle
+      if (e.kind === 'emoji' && (e.size || 0) >= 40) return true; // floating tiles
+      if (e.kind === 'text' && (/^9:41$/.test(e.text || '') || /^NORTE$/.test(e.text || ''))) return true;
+      return false; // drop raw in-phone content
+    });
+    out = out.map((e) => (e.kind === 'emoji' ? { ...e, tile: true, check: true, size: 54 } : e));
+    add({ kind: 'notification', x: 195, y: 286, w: 198, radius: 16, bg: '#FBFAF8', color: '#1A1A1A', cardTitle: 'NORTE', cardValue: 'agora', text: 'Hora de meditar 🧘', cardCaption: 'Mantenha sua sequência de 9 dias.' });
+    add({ kind: 'widget', variant: 'today', x: 195, y: 418, w: 198, radius: 14, bg: '#1A1A1A', color: '#F4F2ED', accent: '#E8923C', cardTitle: 'NORTE · HOJE', cardValue: '2 / 3 FEITOS', items: [
+      { emoji: '🏋️', name: 'exercitar 20min', meta: '7d', done: true },
+      { emoji: '📚', name: 'Leitura', meta: '3d', done: true },
+      { emoji: '💧', name: 'Água', meta: '1d', done: false },
+    ] });
+    add({ kind: 'widget', variant: 'done', x: 147, y: 566, w: 94, h: 94, radius: 14, bg: '#1A1A1A', color: '#F4F2ED', accent: '#E8923C', cardTitle: 'NORTE', cardValue: '🔥 3d', text: 'Leitura', cardCaption: 'CUMPRIDO HOJE', cardValue2: '2/30', check: true });
+    add({ kind: 'widget', variant: 'month', x: 245, y: 566, w: 94, h: 94, radius: 14, bg: '#1A1A1A', color: '#F4F2ED', accent: '#E8923C', cardTitle: 'NORTE', cardValue: '🔥 7d', text: 'exercitar', cardCaption: 'ESTE MÊS · 54%', cols: 6, rows: 4, fill: 0.5, cell: '#F4F2ED' });
+  }
   return out;
 }
 
@@ -208,7 +275,25 @@ const NORTE_COMPONENTS_SLIDES: StarterKitSlide[] = NORTE_SCREENS.map((elements, 
   elements: upgradeNorteScreen(cleanNorteScreen(elements, i), i),
 }));
 
+const NORTE_V2_SLIDES: StarterKitSlide[] = NORTE_SCREENS.map((elements, i) => ({
+  role: NORTE_ROLES[i] || 'secondary',
+  template: 'hero' as const,
+  title: NORTE_SCREEN_TITLES[i] || '',
+  noChrome: true,
+  elements: upgradeNorteScreenV2(elements, i),
+}));
+
 export const STARTER_KITS: StarterKit[] = [
+  {
+    id: 'norte-components-v2',
+    name: 'Norte · Components v2',
+    tagline: 'Refined — notification + widgets, full component set',
+    swatch: '#1A1A1A',
+    background: { type: 'solid', solidColor: '#EDEBE5' },
+    title: { fontFamily: 'Archivo', fontSize: 38, fontWeight: 800, color: '#111111', subtitleColor: '#6B6B6B', subtitleFontSize: 17, alignment: 'center' },
+    device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 84 },
+    slides: NORTE_V2_SLIDES,
+  },
   {
     id: 'norte-components',
     name: 'Norte · Components',

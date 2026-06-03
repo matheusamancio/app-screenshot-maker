@@ -1,12 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import SlideCanvas from './SlideCanvas';
 import { RECIPE_ROLES } from '@/lib/starterKits';
 import { useToast } from '../ui/Toast';
 
 const SLIDE_WIDTH = 268;
+const MIN_ZOOM = 0.35;
+const MAX_ZOOM = 2.5;
 
 function ToolBtn({ title, onClick, disabled, children }: { title: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
   return (
@@ -35,6 +37,51 @@ export default function MultiSlideCanvas() {
   const savedCount = useProjectStore((s) => (s.savedSlides || []).length);
   const { toast } = useToast();
 
+  const [zoom, setZoom] = useState(1);
+  const zoomRef = useRef(1);
+  zoomRef.current = zoom;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const focusRef = useRef<{ ratio: number; cx: number; cy: number } | null>(null);
+  const sw = Math.round(SLIDE_WIDTH * zoom);
+
+  // Trackpad pinch (and ⌘/Ctrl + wheel) → zoom the canvas only.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return; // pinch gesture arrives as ctrl+wheel
+      e.preventDefault();
+      const old = zoomRef.current;
+      const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, old * (1 - e.deltaY * 0.01)));
+      if (next === old) return;
+      const rect = el.getBoundingClientRect();
+      focusRef.current = { ratio: next / old, cx: e.clientX - rect.left, cy: e.clientY - rect.top };
+      setZoom(next);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // After a zoom change, keep the point under the cursor stable.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    const f = focusRef.current;
+    if (!el || !f) return;
+    el.scrollLeft = (el.scrollLeft + f.cx) * f.ratio - f.cx;
+    el.scrollTop = (el.scrollTop + f.cy) * f.ratio - f.cy;
+    focusRef.current = null;
+  }, [zoom]);
+
+  const setZoomCentered = (next: number) => {
+    const el = scrollRef.current;
+    const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next));
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      focusRef.current = { ratio: z / zoomRef.current, cx: rect.width / 2, cy: rect.height / 2 };
+    }
+    setZoom(z);
+  };
+
   // Clicking empty canvas (outside any screen) clears the current selection.
   const onBackgroundPointerDown = (e: React.PointerEvent) => {
     const target = e.target as HTMLElement;
@@ -42,7 +89,8 @@ export default function MultiSlideCanvas() {
   };
 
   return (
-    <div className="flex-1 min-w-0 dot-grid bg-overlay overflow-auto" onPointerDown={onBackgroundPointerDown}>
+    <div className="flex-1 min-w-0 relative">
+      <div ref={scrollRef} className="absolute inset-0 dot-grid bg-overlay overflow-auto" onPointerDown={onBackgroundPointerDown}>
       <div className="h-full flex items-center gap-5 px-8 py-6" style={{ minWidth: 'max-content' }}>
         {slides.map((slide, i) => {
           const active = slide.id === activeSlideId;
@@ -76,7 +124,7 @@ export default function MultiSlideCanvas() {
 
               <SlideCanvas
                 slide={slide}
-                width={SLIDE_WIDTH}
+                width={sw}
                 active={active}
                 onActivate={() => setActiveSlide(slide.id)}
                 language={activeLanguage}
@@ -95,10 +143,24 @@ export default function MultiSlideCanvas() {
           onClick={addSlide}
           title="Add screen"
           className="flex-shrink-0 rounded-xl border-2 border-dashed border-border-default text-text-muted hover:border-norte-primary hover:text-norte-primary flex items-center justify-center"
-          style={{ width: SLIDE_WIDTH * 0.5, height: SLIDE_WIDTH * (2868 / 1320) }}
+          style={{ width: sw * 0.5, height: sw * (2868 / 1320) }}
         >
           <span className="text-3xl">+</span>
         </button>
+      </div>
+      </div>
+
+      {/* Zoom control — floats over the canvas (pinch to zoom too) */}
+      <div className="absolute bottom-4 left-4 z-20 flex items-center gap-1 bg-surface border border-border-default rounded-lg shadow-md px-1 py-1 select-none">
+        <ToolBtn title="Zoom out" onClick={() => setZoomCentered(zoom - 0.15)}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        </ToolBtn>
+        <button onClick={() => setZoomCentered(1)} title="Reset zoom (100%)" className="px-1.5 h-7 rounded-md text-[11px] font-semibold text-secondary hover:bg-overlay tabular-nums min-w-[44px]">
+          {Math.round(zoom * 100)}%
+        </button>
+        <ToolBtn title="Zoom in" onClick={() => setZoomCentered(zoom + 0.15)}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        </ToolBtn>
       </div>
     </div>
   );

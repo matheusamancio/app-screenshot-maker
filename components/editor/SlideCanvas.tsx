@@ -5,6 +5,8 @@ import { useProjectStore } from '@/store/projectStore';
 import { getDevice } from '@/lib/deviceSizes';
 import TemplateRenderer from '../templates/TemplateRenderer';
 import TransformController from './TransformController';
+import GroupController from './GroupController';
+import ContextMenu, { MenuItem } from './ContextMenu';
 import type { Slide, Language, ElementTransform } from '@/types';
 import { BASE_LANGUAGE, IDENTITY_TRANSFORM } from '@/types';
 import { kindLabel } from '@/lib/elements';
@@ -70,6 +72,15 @@ export default function SlideCanvas({ slide, width, active, onActivate, language
   const clipboardElement = useProjectStore((s) => s.clipboardElement);
   const selected = useProjectStore((s) => s.selectedElementId);
   const setSelected = useProjectStore((s) => s.setSelectedElement);
+  const selectedIds = useProjectStore((s) => s.selectedIds || []);
+  const toggleSelectedId = useProjectStore((s) => s.toggleSelectedId);
+  const setSelectedIds = useProjectStore((s) => s.setSelectedIds);
+  const applyElementPatches = useProjectStore((s) => s.applyElementPatches);
+  const deleteSelectedElements = useProjectStore((s) => s.deleteSelectedElements);
+  const reorderElement = useProjectStore((s) => s.reorderElement);
+  const duplicateElement = useProjectStore((s) => s.duplicateElement);
+  const groupElements = useProjectStore((s) => s.groupElements);
+  const ungroupElements = useProjectStore((s) => s.ungroupElements);
   const undo = useProjectStore((s) => s.undo);
   const redo = useProjectStore((s) => s.redo);
   const isDraggingElement = useProjectStore((s) => s.isDraggingElement);
@@ -81,6 +92,9 @@ export default function SlideCanvas({ slide, width, active, onActivate, language
   const [editingElementId, setEditingElementId] = useState<string | null>(null);
   const [measureTick, setMeasureTick] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string } | null>(null);
+  const [marquee, setMarquee] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const marqueeRef = useRef<{ startX: number; startY: number; moved: boolean } | null>(null);
 
   const targetW = device?.width || 1320;
   const targetH = device?.height || 2868;
@@ -89,12 +103,105 @@ export default function SlideCanvas({ slide, width, active, onActivate, language
   const computedScale = width / targetW;
   const height = targetH * computedScale;
 
+  const BASE_H = 844;
   const elId = active && selected && selected.startsWith('el:') ? selected.slice(3) : null;
   const selectedEl = elId ? slide.elements?.find((e) => e.id === elId) : undefined;
+  const multi = active && selectedIds.length > 1;
+  const groupEls = multi ? (slide.elements || []).filter((e) => selectedIds.includes(e.id)) : [];
+
+  /**
+   * Align the active selection. `relativeTo: 'screen'` aligns each element to the
+   * slide bounds; `'selection'` aligns them to one another (their shared bounding
+   * box). A single element always aligns to the screen.
+   */
+  const alignTo = (edge: 'left' | 'hcenter' | 'right' | 'top' | 'vcenter' | 'bottom', relativeTo: 'screen' | 'selection' = 'selection') => {
+    const ids = selectedIds.length ? selectedIds : elId ? [elId] : [];
+    if (!ids.length || !stageRef.current) return;
+    const denom = computedScale * scaleFactor || 1;
+    const items = ids
+      .map((id) => {
+        const node = stageRef.current!.querySelector(`[data-element="el:${id}"]`) as HTMLElement | null;
+        const el = slide.elements?.find((e) => e.id === id);
+        if (!node || !el) return null;
+        const r = node.getBoundingClientRect();
+        return { id, x: el.x, y: el.y, bw: r.width / denom, bh: r.height / denom };
+      })
+      .filter(Boolean) as { id: string; x: number; y: number; bw: number; bh: number }[];
+    if (!items.length) return;
+    let bounds: { left: number; right: number; top: number; bottom: number };
+    if (relativeTo === 'screen' || items.length < 2) {
+      bounds = { left: 0, right: BASE_W, top: 0, bottom: BASE_H };
+    } else {
+      bounds = {
+        left: Math.min(...items.map((i) => i.x - i.bw / 2)),
+        right: Math.max(...items.map((i) => i.x + i.bw / 2)),
+        top: Math.min(...items.map((i) => i.y - i.bh / 2)),
+        bottom: Math.max(...items.map((i) => i.y + i.bh / 2)),
+      };
+    }
+    const cx = (bounds.left + bounds.right) / 2, cy = (bounds.top + bounds.bottom) / 2;
+    const patches: Record<string, Partial<SlideElement>> = {};
+    items.forEach((it) => {
+      const p: Record<string, number> = {};
+      if (edge === 'left') p.x = bounds.left + it.bw / 2;
+      else if (edge === 'hcenter') p.x = cx;
+      else if (edge === 'right') p.x = bounds.right - it.bw / 2;
+      else if (edge === 'top') p.y = bounds.top + it.bh / 2;
+      else if (edge === 'vcenter') p.y = cy;
+      else p.y = bounds.bottom - it.bh / 2;
+      patches[it.id] = p;
+    });
+    applyElementPatches(slide.id, patches);
+  };
+
+  /** Build the right-click menu for the element under the cursor. */
+  const buildMenu = (id: string): MenuItem[] => {
+    const ids = selectedIds.includes(id) && selectedIds.length > 1 ? selectedIds : [id];
+    const targetEl = slide.elements?.find((e) => e.id === id);
+    const grouped = !!targetEl?.groupId;
+    return [
+      { label: 'Bring to front', onClick: () => reorderElement(slide.id, id, 'front') },
+      { label: 'Bring forward', onClick: () => reorderElement(slide.id, id, 'forward') },
+      { label: 'Send backward', onClick: () => reorderElement(slide.id, id, 'backward') },
+      { label: 'Send to back', onClick: () => reorderElement(slide.id, id, 'back') },
+      { divider: true },
+      {
+        label: ids.length > 1 ? 'Align to each other' : 'Align to screen',
+        submenu: [
+          { label: 'Left', onClick: () => alignTo('left', 'selection') },
+          { label: 'Center horizontally', onClick: () => alignTo('hcenter', 'selection') },
+          { label: 'Right', onClick: () => alignTo('right', 'selection') },
+          { label: 'Top', onClick: () => alignTo('top', 'selection') },
+          { label: 'Center vertically', onClick: () => alignTo('vcenter', 'selection') },
+          { label: 'Bottom', onClick: () => alignTo('bottom', 'selection') },
+        ],
+      },
+      ...(ids.length > 1
+        ? [{
+            label: 'Align to screen',
+            submenu: [
+              { label: 'Left', onClick: () => alignTo('left', 'screen') },
+              { label: 'Center horizontally', onClick: () => alignTo('hcenter', 'screen') },
+              { label: 'Right', onClick: () => alignTo('right', 'screen') },
+              { label: 'Top', onClick: () => alignTo('top', 'screen') },
+              { label: 'Center vertically', onClick: () => alignTo('vcenter', 'screen') },
+              { label: 'Bottom', onClick: () => alignTo('bottom', 'screen') },
+            ],
+          } as MenuItem]
+        : []),
+      { divider: true },
+      ...(ids.length > 1 ? [{ label: `Group ${ids.length} items`, onClick: () => { groupElements(slide.id, ids); setSelectedIds(ids); } }] : []),
+      ...(grouped ? [{ label: 'Ungroup', onClick: () => ungroupElements(slide.id, ids) }] : []),
+      ...(ids.length > 1 || grouped ? [{ divider: true } as MenuItem] : []),
+      { label: 'Duplicate', onClick: () => duplicateElement(slide.id, id) },
+      { label: 'Copy', onClick: () => copyElement(slide.id, id) },
+      { label: 'Delete', danger: true, onClick: () => (ids.length > 1 ? deleteSelectedElements(slide.id) : deleteElement(slide.id, id)) },
+    ];
+  };
 
   useEffect(() => {
     setMeasureTick((t) => t + 1);
-  }, [slide.titleTransform, slide.deviceTransform, slide.template, slide.title.fontSize, slide.title.text, slide.title.subtitle, slide.device.scale, slide.elements, selected, width, active]);
+  }, [slide.titleTransform, slide.deviceTransform, slide.template, slide.title.fontSize, slide.title.text, slide.title.subtitle, slide.device.scale, slide.elements, selected, selectedIds, width, active]);
 
   useEffect(() => {
     if (!active) {
@@ -126,16 +233,21 @@ export default function SlideCanvas({ slide, width, active, onActivate, language
           e.preventDefault();
           pasteElement(slide.id);
         }
-      } else if ((e.key === 'Delete' || e.key === 'Backspace') && elId && !typing) {
-        e.preventDefault();
-        deleteElement(slide.id, elId);
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && !typing) {
+        if (selectedIds.length > 1) {
+          e.preventDefault();
+          deleteSelectedElements(slide.id);
+        } else if (elId) {
+          e.preventDefault();
+          deleteElement(slide.id, elId);
+        }
       } else if (e.key === 'Escape') {
         setSelected(null);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [active, elId, clipboardElement, editingElementId, slide.id, copyElement, pasteElement, deleteElement, setSelected, undo, redo]);
+  }, [active, elId, selectedIds, clipboardElement, editingElementId, slide.id, copyElement, pasteElement, deleteElement, deleteSelectedElements, setSelected, undo, redo]);
 
   const currentTransform: ElementTransform = selectedEl
     ? { x: selectedEl.x, y: selectedEl.y, rotation: selectedEl.rotation, scale: selectedEl.scale }
@@ -149,6 +261,58 @@ export default function SlideCanvas({ slide, width, active, onActivate, language
     if (!active) onActivate();
   };
 
+  /**
+   * Rubber-band selection: press on empty canvas and drag to draw a rectangle;
+   * every element it touches becomes selected (groups expand to all members).
+   * If the pointer barely moves it's treated as a plain click → clears selection.
+   */
+  const startMarquee = (e: React.PointerEvent) => {
+    const wrap = canvasWrapperRef.current;
+    if (!wrap) return;
+    marqueeRef.current = { startX: e.clientX, startY: e.clientY, moved: false };
+    const onMove = (ev: PointerEvent) => {
+      const m = marqueeRef.current;
+      if (!m) return;
+      if (!m.moved && Math.hypot(ev.clientX - m.startX, ev.clientY - m.startY) < 4) return;
+      m.moved = true;
+      const r = wrap.getBoundingClientRect();
+      const x0 = m.startX - r.left, y0 = m.startY - r.top;
+      const x1 = ev.clientX - r.left, y1 = ev.clientY - r.top;
+      setMarquee({ left: Math.min(x0, x1), top: Math.min(y0, y1), width: Math.abs(x1 - x0), height: Math.abs(y1 - y0) });
+    };
+    const onUp = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      const m = marqueeRef.current;
+      marqueeRef.current = null;
+      setMarquee(null);
+      if (!m || !m.moved) {
+        setSelected(null);
+        setEditingElementId(null);
+        return;
+      }
+      const minX = Math.min(m.startX, ev.clientX), maxX = Math.max(m.startX, ev.clientX);
+      const minY = Math.min(m.startY, ev.clientY), maxY = Math.max(m.startY, ev.clientY);
+      const nodes = stageRef.current?.querySelectorAll('[data-element^="el:"]') || [];
+      const hit = new Set<string>();
+      nodes.forEach((n) => {
+        const b = (n as HTMLElement).getBoundingClientRect();
+        if (b.right >= minX && b.left <= maxX && b.bottom >= minY && b.top <= maxY) {
+          hit.add((n as HTMLElement).getAttribute('data-element')!.slice(3));
+        }
+      });
+      // expand groups to all members
+      const els = slide.elements || [];
+      Array.from(hit).forEach((id) => {
+        const gid = els.find((e) => e.id === id)?.groupId;
+        if (gid) els.filter((e) => e.groupId === gid).forEach((e) => hit.add(e.id));
+      });
+      setSelectedIds(Array.from(hit));
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
   return (
     <div
       ref={canvasWrapperRef}
@@ -156,11 +320,36 @@ export default function SlideCanvas({ slide, width, active, onActivate, language
       className={`rounded-xl bg-surface relative transition-shadow ${active ? 'shadow-canvas ring-2 ring-norte-primary' : 'shadow-md ring-1 ring-border-default hover:ring-border-strong'}`}
       style={{ width, height, flexShrink: 0, overflow: 'visible', zIndex: dragging ? 50 : undefined }}
       onPointerDown={(e) => {
+        if (e.button !== 0) return; // right/middle click handled by onContextMenu
         activate();
         const target = e.target as HTMLElement;
+        // Empty canvas → start a rubber-band selection (a plain click clears).
         if (!target.closest('[data-element]') && !target.closest('[data-overlay]')) {
-          setSelected(null);
+          e.preventDefault(); // suppress native text selection during the drag
+          startMarquee(e);
+        }
+      }}
+      onContextMenu={(e) => {
+        const target = e.target as HTMLElement;
+        const elNode = target.closest('[data-element^="el:"]') as HTMLElement | null;
+        // right-click on a component → our menu
+        if (elNode) {
+          e.preventDefault();
+          activate();
           setEditingElementId(null);
+          const id = elNode.getAttribute('data-element')!.slice(3);
+          if (!selectedIds.includes(id)) {
+            const gid = slide.elements?.find((el) => el.id === id)?.groupId;
+            if (gid) setSelectedIds((slide.elements || []).filter((el) => el.groupId === gid).map((el) => el.id));
+            else setSelected(`el:${id}`);
+          }
+          setMenu({ x: e.clientX, y: e.clientY, id });
+          return;
+        }
+        // right-click on the selection chrome (overlay) → menu for the current selection
+        if (target.closest('[data-overlay]') && elId) {
+          e.preventDefault();
+          setMenu({ x: e.clientX, y: e.clientY, id: elId });
         }
       }}
     >
@@ -175,10 +364,34 @@ export default function SlideCanvas({ slide, width, active, onActivate, language
             height={targetH}
             language={language}
             editingElementId={editingElementId}
-            onElementSelect={(sel) => {
+            onElementSelect={(sel, additive) => {
               activate();
               setEditingElementId(null);
+              if (additive && sel.startsWith('el:')) {
+                toggleSelectedId(sel.slice(3));
+                return;
+              }
+              // Selecting one member of a group selects the whole group
+              if (sel.startsWith('el:')) {
+                const id = sel.slice(3);
+                const gid = slide.elements?.find((e) => e.id === id)?.groupId;
+                if (gid) {
+                  const ids = (slide.elements || []).filter((e) => e.groupId === gid).map((e) => e.id);
+                  setSelectedIds(ids);
+                  return;
+                }
+              }
               setSelected(sel);
+            }}
+            onElementContextMenu={(id, x, y) => {
+              activate();
+              setEditingElementId(null);
+              if (!selectedIds.includes(id)) {
+                const gid = slide.elements?.find((e) => e.id === id)?.groupId;
+                if (gid) setSelectedIds((slide.elements || []).filter((e) => e.groupId === gid).map((e) => e.id));
+                else setSelected(`el:${id}`);
+              }
+              setMenu({ x, y, id });
             }}
             onElementTextChange={(id, text) => {
               const el = slide.elements?.find((x) => x.id === id);
@@ -248,7 +461,22 @@ export default function SlideCanvas({ slide, width, active, onActivate, language
         </div>
       )}
 
-      {active && (
+      {active && multi && (
+        <div data-overlay style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <GroupController
+            canvasWrapperRef={canvasWrapperRef}
+            stageRef={stageRef}
+            computedScale={computedScale}
+            scaleFactor={scaleFactor}
+            elements={groupEls}
+            measureTick={measureTick}
+            onApply={(patches) => applyElementPatches(slide.id, patches)}
+            onDelete={() => deleteSelectedElements(slide.id)}
+          />
+        </div>
+      )}
+
+      {active && !multi && (
         <div data-overlay style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
           <TransformController
             canvasWrapperRef={canvasWrapperRef}
@@ -317,6 +545,28 @@ export default function SlideCanvas({ slide, width, active, onActivate, language
             }
           />
         </div>
+      )}
+
+      {/* Rubber-band selection rectangle */}
+      {marquee && (
+        <div
+          style={{
+            position: 'absolute',
+            left: marquee.left,
+            top: marquee.top,
+            width: marquee.width,
+            height: marquee.height,
+            border: '1px solid rgba(91,95,237,0.9)',
+            background: 'rgba(91,95,237,0.12)',
+            borderRadius: 2,
+            pointerEvents: 'none',
+            zIndex: 60,
+          }}
+        />
+      )}
+
+      {menu && (
+        <ContextMenu x={menu.x} y={menu.y} items={buildMenu(menu.id)} onClose={() => setMenu(null)} />
       )}
     </div>
   );

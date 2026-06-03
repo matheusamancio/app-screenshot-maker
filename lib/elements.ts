@@ -77,7 +77,23 @@ export function kindLabel(kind: SlideElement['kind']): string {
 const base = (x: number, y: number): Pick<SlideElement, 'id' | 'x' | 'y' | 'rotation' | 'scale'> => ({ id: uid(), x, y, rotation: 0, scale: 1 });
 
 export function newShape(x = 195, y = 400): SlideElement {
-  return { ...base(x, y), kind: 'shape', w: 200, h: 120, bg: '#1C1C1E', radius: 22 };
+  return { ...base(x, y), kind: 'shape', shapeType: 'rect', w: 200, h: 120, bg: '#1C1C1E', radius: 22, opacity: 1 };
+}
+export type ShapeStyle = 'square' | 'rounded' | 'circle' | 'pill' | 'triangle' | 'diamond' | 'hexagon' | 'star' | 'line';
+/** Create a shape of a given visual style (square, circle, triangle, …). */
+export function newShapeKind(style: ShapeStyle, x = 195, y = 400): SlideElement {
+  const b = { ...base(x, y), kind: 'shape' as const, bg: '#1C1C1E', opacity: 1 };
+  switch (style) {
+    case 'square': return { ...b, shapeType: 'rect', w: 120, h: 120, radius: 6 };
+    case 'rounded': return { ...b, shapeType: 'rect', w: 150, h: 104, radius: 26 };
+    case 'circle': return { ...b, shapeType: 'circle', w: 120, h: 120, radius: 0 };
+    case 'pill': return { ...b, shapeType: 'pill', w: 168, h: 64, radius: 0 };
+    case 'triangle': return { ...b, shapeType: 'triangle', w: 124, h: 112, radius: 6 };
+    case 'diamond': return { ...b, shapeType: 'diamond', w: 120, h: 120, radius: 6 };
+    case 'hexagon': return { ...b, shapeType: 'hexagon', w: 124, h: 112, radius: 6 };
+    case 'star': return { ...b, shapeType: 'star', w: 124, h: 120, radius: 4 };
+    case 'line': return { ...b, shapeType: 'line', w: 180, h: 0, radius: 5 };
+  }
 }
 export function newHeatmap(x = 195, y = 480): SlideElement {
   return { ...base(x, y), kind: 'heatmap', w: 300, cols: 12, rows: 7, fill: 0.5, cell: '#1C1C1E', bg: '#D8D5CE' };
@@ -114,7 +130,15 @@ export function newBlurPanel(x = 195, y = 420): SlideElement {
 }
 /** iPhone device frame — dark→grey gradient screen with a dynamic-island pill. */
 export function newPhone(x = 195, y = 430): SlideElement {
-  return { ...base(x, y), kind: 'phone', w: 232, h: 480, radius: 46, bg: '#000000', bg2: '#A6A6A6', island: true };
+  return { ...base(x, y), kind: 'phone', phoneStyle: 'gradient', w: 232, h: 480, radius: 46, bg: '#000000', bg2: '#A6A6A6', island: true };
+}
+/** Realistic empty iPhone — titanium bezel, light screen, dynamic island + status bar.
+ *  Drop one and place your components on top of it. */
+export function newPhoneFrame(x = 195, y = 430): SlideElement {
+  return {
+    ...base(x, y), kind: 'phone', phoneStyle: 'frame', w: 240, h: 500, radius: 48,
+    bg: '#2B2B2D', bg2: '#EFEDE8', island: true, text: '9:41', cardTitle: 'NORTE',
+  };
 }
 /** Habit row card — check toggle + emoji + name + streak line + mini history heatmap. */
 export function newHabitRow(x = 195, y = 300, emoji = '🏋️', name = 'exercitar 20min'): SlideElement {

@@ -404,7 +404,79 @@ export const useProjectStore = create<ProjectState>()(
         })),
 
       selectedElementId: null,
-      setSelectedElement: (sel) => set({ selectedElementId: sel }),
+      selectedIds: [],
+      setSelectedElement: (sel) =>
+        set({ selectedElementId: sel, selectedIds: sel && sel.startsWith('el:') ? [sel.slice(3)] : [] }),
+      toggleSelectedId: (id) =>
+        set((state) => {
+          const cur = state.selectedIds || [];
+          const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+          return { selectedIds: next, selectedElementId: next.length ? `el:${next[next.length - 1]}` : null };
+        }),
+      applyElementPatches: (slideId, patches) =>
+        set((state) => ({
+          slides: state.slides.map((s) =>
+            s.id === slideId
+              ? { ...s, elements: (s.elements || []).map((el) => (patches[el.id] ? { ...el, ...patches[el.id] } : el)) }
+              : s,
+          ),
+        })),
+      deleteSelectedElements: (slideId) =>
+        set((state) => {
+          const sel = state.selectedIds || [];
+          if (!sel.length) return {};
+          return {
+            slides: state.slides.map((s) =>
+              s.id === slideId ? { ...s, elements: (s.elements || []).filter((el) => !sel.includes(el.id)) } : s,
+            ),
+            selectedElementId: null,
+            selectedIds: [],
+          };
+        }),
+      setSelectedIds: (ids) => set({ selectedIds: ids, selectedElementId: ids.length ? `el:${ids[ids.length - 1]}` : null }),
+      reorderElement: (slideId, elementId, where) =>
+        set((state) => ({
+          slides: state.slides.map((s) => {
+            if (s.id !== slideId) return s;
+            const els = [...(s.elements || [])];
+            const i = els.findIndex((e) => e.id === elementId);
+            if (i < 0) return s;
+            const [el] = els.splice(i, 1);
+            if (where === 'front') els.push(el);
+            else if (where === 'back') els.unshift(el);
+            else if (where === 'forward') els.splice(Math.min(els.length, i + 1), 0, el);
+            else els.splice(Math.max(0, i - 1), 0, el);
+            return { ...s, elements: els };
+          }),
+        })),
+      duplicateElement: (slideId, elementId) =>
+        set((state) => {
+          const slide = state.slides.find((s) => s.id === slideId);
+          const el = slide?.elements?.find((e) => e.id === elementId);
+          if (!el) return {};
+          const clone: SlideElement = { ...JSON.parse(JSON.stringify(el)), id: uid(), x: el.x + 16, y: el.y + 16, groupId: undefined };
+          return {
+            slides: state.slides.map((s) => (s.id === slideId ? { ...s, elements: [...(s.elements || []), clone] } : s)),
+            selectedElementId: `el:${clone.id}`,
+            selectedIds: [clone.id],
+          };
+        }),
+      groupElements: (slideId, ids) =>
+        set((state) => {
+          if (ids.length < 2) return {};
+          const gid = uid();
+          return {
+            slides: state.slides.map((s) =>
+              s.id === slideId ? { ...s, elements: (s.elements || []).map((el) => (ids.includes(el.id) ? { ...el, groupId: gid } : el)) } : s,
+            ),
+          };
+        }),
+      ungroupElements: (slideId, ids) =>
+        set((state) => ({
+          slides: state.slides.map((s) =>
+            s.id === slideId ? { ...s, elements: (s.elements || []).map((el) => (ids.includes(el.id) ? { ...el, groupId: undefined } : el)) } : s,
+          ),
+        })),
       clipboardElement: null,
 
       addElement: (slideId, element, opts) =>
@@ -413,6 +485,7 @@ export const useProjectStore = create<ProjectState>()(
             s.id === slideId ? { ...s, elements: [...(s.elements || []), element] } : s,
           ),
           selectedElementId: opts?.select === false ? state.selectedElementId : `el:${element.id}`,
+          selectedIds: opts?.select === false ? state.selectedIds : [element.id],
         })),
 
       updateElement: (slideId, elementId, patch) =>
@@ -430,6 +503,7 @@ export const useProjectStore = create<ProjectState>()(
             s.id === slideId ? { ...s, elements: (s.elements || []).filter((el) => el.id !== elementId) } : s,
           ),
           selectedElementId: state.selectedElementId === `el:${elementId}` ? null : state.selectedElementId,
+          selectedIds: (state.selectedIds || []).filter((x) => x !== elementId),
         })),
 
       copyElement: (slideId, elementId) =>

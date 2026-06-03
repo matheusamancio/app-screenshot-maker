@@ -27,9 +27,10 @@ interface Props {
   onSubtitleChange?: (value: string) => void;
   onElementPointerDown?: (element: TransformableElement, e: React.PointerEvent) => void;
   // Free-element editing (omitted in export/preview → static)
-  onElementSelect?: (sel: string) => void;
+  onElementSelect?: (sel: string, additive?: boolean) => void;
   onElementTextChange?: (id: string, text: string) => void;
   onElementToggleCheck?: (id: string) => void;
+  onElementContextMenu?: (id: string, x: number, y: number) => void;
   onElementEditStart?: (id: string) => void;
   onElementEditEnd?: () => void;
   editingElementId?: string | null;
@@ -77,6 +78,7 @@ export default function TemplateRenderer({
   onElementSelect,
   onElementTextChange,
   onElementToggleCheck,
+  onElementContextMenu,
   onElementEditStart,
   onElementEditEnd,
   editingElementId,
@@ -121,6 +123,7 @@ export default function TemplateRenderer({
         onSelect={onElementSelect}
         onTextChange={onElementTextChange}
         onToggleCheck={onElementToggleCheck}
+        onContextMenu={onElementContextMenu}
         onEditStart={onElementEditStart}
         onEditEnd={onElementEditEnd}
         editingId={editingElementId}

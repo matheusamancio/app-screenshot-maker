@@ -148,6 +148,12 @@ export default function ElementsPanel({ slide }: { slide: Slide }) {
           ) : (
             <ComponentEditor sel={sel} update={(patch) => updateElement(slide.id, sel.id, patch)} />
           )}
+
+          {/* Universal: opacity + shadow for every component type */}
+          <div className="border-t border-border-default pt-3 space-y-3">
+            <Slider label="Opacity" value={Math.round((sel.opacity ?? 1) * 100)} min={5} max={100} suffix="%" onChange={(v) => updateElement(slide.id, sel.id, { opacity: v / 100 })} />
+            <Slider label="Shadow" value={sel.shadow ?? 0} min={0} max={40} suffix="px" onChange={(v) => updateElement(slide.id, sel.id, { shadow: v })} />
+          </div>
         </div>
       )}
     </div>
@@ -196,6 +202,75 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
             <Slider label="" value={sel.radius ?? 20} min={0} max={48} onChange={(v) => update({ radius: v })} />
           </div>
         </div>
+      )}
+
+      {sel.kind === 'shape' && (
+        <>
+          <div>
+            <div className="section-label mb-1.5">Shape</div>
+            <div className="grid grid-cols-5 gap-1.5">
+              {(['rect', 'circle', 'pill', 'triangle', 'diamond', 'hexagon', 'star', 'line'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => update({ shapeType: t })}
+                  title={t}
+                  className={`aspect-square rounded-md border text-[9px] capitalize flex items-center justify-center ${ (sel.shapeType || 'rect') === t ? 'border-norte-primary bg-norte-primary-light text-norte-primary' : 'border-border-default bg-overlay text-secondary'}`}
+                >
+                  {t === 'rect' ? '▢' : t === 'circle' ? '○' : t === 'pill' ? '▭' : t === 'triangle' ? '△' : t === 'diamond' ? '◇' : t === 'hexagon' ? '⬡' : t === 'star' ? '★' : '─'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex items-center justify-between gap-2 px-1">
+              <span className="section-label">Gradient</span>
+              <Toggle on={!!sel.bg2} onToggle={() => update({ bg2: sel.bg2 ? undefined : '#0E0E0F' })} />
+            </label>
+            {sel.bg2 && (
+              <div>
+                <div className="section-label mb-1.5">End</div>
+                <ColorPicker color={sel.bg2} onChange={(c) => update({ bg2: c })} />
+              </div>
+            )}
+          </div>
+
+          {/* Text label inside the shape — double-click the shape on the canvas to edit it */}
+          <div className="border-t border-border-default pt-3 space-y-2">
+            <div className="section-label">Label</div>
+            <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="Double-click the shape to add text" />
+            {(sel.text || '').length > 0 && (
+              <>
+                <Slider label="Text size" value={sel.fontSize || 16} min={8} max={64} suffix="px" onChange={(v) => update({ fontSize: v })} />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="section-label mb-1.5">Text color</div>
+                    <ColorPicker color={sel.color || '#FFFFFF'} onChange={(c) => update({ color: c })} />
+                  </div>
+                  <div>
+                    <div className="section-label mb-1.5">Weight</div>
+                    <div className="flex bg-overlay rounded-md p-1 border border-border-default">
+                      {([400, 700, 800] as const).map((wt) => (
+                        <button key={wt} onClick={() => update({ fontWeight: wt })} className={`flex-1 py-1 text-xs rounded font-medium ${(sel.fontWeight || 700) === wt ? 'bg-surface text-norte-primary shadow-sm' : 'text-text-muted'}`}>
+                          {wt === 400 ? 'R' : wt === 700 ? 'B' : 'XB'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="section-label mb-1.5">Align</div>
+                  <div className="grid grid-cols-3 gap-1 bg-overlay rounded-md p-1 border border-border-default">
+                    {(['left', 'center', 'right'] as const).map((a) => (
+                      <button key={a} onClick={() => update({ align: a })} className={`h-7 text-base rounded ${(sel.align || 'center') === a ? 'bg-surface text-norte-primary shadow-sm' : 'text-text-muted'}`}>
+                        {a === 'left' ? '←' : a === 'right' ? '→' : '↔'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </>
       )}
 
       {sel.kind === 'card' && (
@@ -420,17 +495,39 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
 
       {sel.kind === 'phone' && (
         <>
+          <Slider label="Width" value={sel.w || 240} min={120} max={360} suffix="px" onChange={(v) => update({ w: v })} />
+          <Slider label="Height" value={sel.h || 500} min={200} max={760} suffix="px" onChange={(v) => update({ h: v })} />
           <Slider label="Radius" value={sel.radius ?? 46} min={12} max={72} suffix="px" onChange={(v) => update({ radius: v })} />
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <div className="section-label mb-1.5">Top colour</div>
-              <ColorPicker color={sel.bg || '#000000'} onChange={(c) => update({ bg: c })} />
+          {sel.phoneStyle === 'frame' ? (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="9:41" />
+                <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="NORTE" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="section-label mb-1.5">Bezel</div>
+                  <ColorPicker color={sel.bg || '#2B2B2D'} onChange={(c) => update({ bg: c })} />
+                </div>
+                <div>
+                  <div className="section-label mb-1.5">Screen</div>
+                  <ColorPicker color={sel.bg2 || '#EFEDE8'} onChange={(c) => update({ bg2: c })} />
+                </div>
+              </div>
+              <p className="text-[11px] text-text-muted">An empty device — drop other components on top to fill the screen.</p>
+            </>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="section-label mb-1.5">Top colour</div>
+                <ColorPicker color={sel.bg || '#000000'} onChange={(c) => update({ bg: c })} />
+              </div>
+              <div>
+                <div className="section-label mb-1.5">Bottom colour</div>
+                <ColorPicker color={sel.bg2 || '#A6A6A6'} onChange={(c) => update({ bg2: c })} />
+              </div>
             </div>
-            <div>
-              <div className="section-label mb-1.5">Bottom colour</div>
-              <ColorPicker color={sel.bg2 || '#A6A6A6'} onChange={(c) => update({ bg2: c })} />
-            </div>
-          </div>
+          )}
           <label className="flex items-center justify-between gap-2 px-1">
             <span className="section-label">Dynamic island</span>
             <Toggle on={sel.island !== false} onToggle={() => update({ island: sel.island === false })} />
