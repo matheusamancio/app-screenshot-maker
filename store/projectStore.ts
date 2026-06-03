@@ -104,6 +104,61 @@ export const useProjectStore = create<ProjectState>()(
       enabledLanguages: [...ALL_LANGUAGE_CODES],
       globals: defaultGlobals,
       activeKitId: null,
+      _past: [],
+      _future: [],
+      isDraggingElement: false,
+      setDraggingElement: (v) => set({ isDraggingElement: v }),
+
+      savedSlides: [],
+      saveSlideToTemplate: (slideId) =>
+        set((state) => {
+          const slide = state.slides.find((s) => s.id === slideId);
+          if (!slide) return {};
+          const copy: Slide = { ...JSON.parse(JSON.stringify(slide)), id: uid() };
+          return { savedSlides: [...(state.savedSlides || []), copy] };
+        }),
+      applySavedTemplate: () =>
+        set((state) => {
+          const saved = state.savedSlides || [];
+          if (!saved.length) return {};
+          const slides = saved.map((s) => ({ ...JSON.parse(JSON.stringify(s)), id: uid() }));
+          return { slides, activeSlideId: slides[0].id, selectedElementId: null };
+        }),
+      addSavedSlideToDeck: (index) =>
+        set((state) => {
+          const s = (state.savedSlides || [])[index];
+          if (!s) return {};
+          const copy: Slide = { ...JSON.parse(JSON.stringify(s)), id: uid() };
+          return { slides: [...state.slides, copy], activeSlideId: copy.id, selectedElementId: null };
+        }),
+      removeSavedSlide: (index) =>
+        set((state) => ({ savedSlides: (state.savedSlides || []).filter((_, i) => i !== index) })),
+      clearSavedTemplate: () => set({ savedSlides: [] }),
+
+      undo: () =>
+        set((state) => {
+          const past = state._past || [];
+          if (!past.length) return {};
+          _suppressHistory = true;
+          return {
+            slides: past[past.length - 1],
+            _past: past.slice(0, -1),
+            _future: [state.slides, ...(state._future || [])].slice(0, 60),
+            selectedElementId: null,
+          };
+        }),
+      redo: () =>
+        set((state) => {
+          const future = state._future || [];
+          if (!future.length) return {};
+          _suppressHistory = true;
+          return {
+            slides: future[0],
+            _future: future.slice(1),
+            _past: [...(state._past || []), state.slides].slice(-60),
+            selectedElementId: null,
+          };
+        }),
 
       setName: (name) => set({ name }),
       setPlatform: (p) => set({ platform: p }),
@@ -397,6 +452,32 @@ export const useProjectStore = create<ProjectState>()(
           };
         }),
 
+      moveElementToSlide: (fromSlideId, toSlideId, elementId, x, y) =>
+        set((state) => {
+          if (fromSlideId === toSlideId) {
+            return {
+              slides: state.slides.map((s) =>
+                s.id === fromSlideId
+                  ? { ...s, elements: (s.elements || []).map((el) => (el.id === elementId ? { ...el, x, y } : el)) }
+                  : s,
+              ),
+            };
+          }
+          const from = state.slides.find((s) => s.id === fromSlideId);
+          const el = from?.elements?.find((e) => e.id === elementId);
+          if (!el) return {};
+          const moved: SlideElement = { ...el, x, y };
+          return {
+            slides: state.slides.map((s) => {
+              if (s.id === fromSlideId) return { ...s, elements: (s.elements || []).filter((e) => e.id !== elementId) };
+              if (s.id === toSlideId) return { ...s, elements: [...(s.elements || []), moved] };
+              return s;
+            }),
+            activeSlideId: toSlideId,
+            selectedElementId: `el:${elementId}`,
+          };
+        }),
+
       applyAIGeneration: (kitId, aiSlides, screenshots) =>
         set((state) => {
           const kit = getKit(kitId);
@@ -465,6 +546,8 @@ export const useProjectStore = create<ProjectState>()(
     {
       name: 'screenforge-project-v1',
       version: 2,
+      partialize: (state) =>
+        Object.fromEntries(Object.entries(state).filter(([k]) => k !== '_past' && k !== '_future' && k !== 'isDraggingElement')) as ProjectState,
       migrate: (persisted: any, version: number) => {
         if (!persisted || version >= 2) return persisted;
         // v1 used generic codes (en/es/fr/zh). Map them to the new App Store locales.
@@ -492,6 +575,26 @@ export const useProjectStore = create<ProjectState>()(
     },
   ),
 );
+
+/**
+ * Edit-history recorder. Watches `slides` changes and pushes the *previous*
+ * snapshot onto the undo stack, coalescing rapid bursts (e.g. a drag) into a
+ * single step. `_suppressHistory` skips recording during undo/redo.
+ */
+let _suppressHistory = false;
+let _lastHistoryTs = 0;
+useProjectStore.subscribe((state, prev) => {
+  if (state.slides === prev.slides) return; // only slide content changes
+  if (_suppressHistory) {
+    _suppressHistory = false;
+    return;
+  }
+  const now = Date.now();
+  const coalesce = now - _lastHistoryTs < 600 && (state._past || []).length > 0;
+  _lastHistoryTs = now;
+  if (coalesce) return; // merge bursts into one undo step
+  useProjectStore.setState((s) => ({ _past: [...(s._past || []), prev.slides].slice(-60), _future: [] }));
+});
 
 export function getActiveSlide(state: ProjectState): Slide {
   return state.slides.find((s) => s.id === state.activeSlideId) || state.slides[0];

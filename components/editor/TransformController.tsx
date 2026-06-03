@@ -27,7 +27,7 @@ interface Props {
   /** Whether the selection is a free element (shows Copy/Delete). */
   isElement?: boolean;
   transform: ElementTransform;
-  onChange: (patch: Partial<ElementTransform>) => void;
+  onChange: (patch: Partial<ElementTransform> & { w?: number; h?: number; width?: number }) => void;
   onReset: () => void;
   onCopy?: () => void;
   onDelete?: () => void;
@@ -35,9 +35,20 @@ interface Props {
   onEditRequest?: () => void;
   /** Bumped externally to force re-measure when the underlying DOM changes. */
   measureTick: number;
+  /** Called when a move-drag begins (lets the parent unclip + raise z-index). */
+  onMoveStart?: () => void;
+  /** Called when a move-drag ends, with the final pointer position (for cross-slide drop). */
+  onMoveEnd?: (clientX: number, clientY: number) => void;
+  /** Which element field the width handle edits ('w' for boxes, 'width' for text). */
+  widthField?: 'w' | 'width';
+  /** Which element field the height handle edits ('h'). */
+  heightField?: 'h';
+  /** Current baseline width/height values for the resize handles. */
+  widthVal?: number;
+  heightVal?: number;
 }
 
-type DragMode = 'move' | 'rotate' | 'scale' | null;
+type DragMode = 'move' | 'rotate' | 'scale' | 'resize-r' | 'resize-b' | null;
 
 export default function TransformController({
   canvasWrapperRef,
@@ -54,6 +65,12 @@ export default function TransformController({
   onDelete,
   onEditRequest,
   measureTick,
+  onMoveStart,
+  onMoveEnd,
+  widthField,
+  heightField,
+  widthVal,
+  heightVal,
 }: Props) {
   const labelText = label || selected || '';
   const [box, setBox] = useState<ScreenBox | null>(null);
@@ -62,6 +79,8 @@ export default function TransformController({
     startX: number;
     startY: number;
     startTransform: ElementTransform;
+    startW: number;
+    startH: number;
     centerScreenX: number;
     centerScreenY: number;
     initialAngle: number;
@@ -136,10 +155,20 @@ export default function TransformController({
         const ratio = dist / Math.max(drag.initialDist, 1);
         const next = Math.max(0.2, Math.min(4, drag.startTransform.scale * ratio));
         onChange({ scale: next });
+      } else if (drag.mode === 'resize-r' && widthField) {
+        const newW = Math.max(16, drag.startW + dxLogical);
+        const patch: Partial<ElementTransform> & { w?: number; width?: number } = { x: drag.startTransform.x + (newW - drag.startW) / 2 };
+        patch[widthField] = newW;
+        onChange(patch);
+      } else if (drag.mode === 'resize-b' && heightField) {
+        const newH = Math.max(16, drag.startH + dyLogical);
+        onChange({ h: newH, y: drag.startTransform.y + (newH - drag.startH) / 2 });
       }
     };
-    const onUp = () => {
+    const onUp = (e: PointerEvent) => {
+      const drag = dragRef.current;
       dragRef.current = null;
+      if (drag && drag.mode === 'move') onMoveEnd?.(e.clientX, e.clientY);
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -147,7 +176,7 @@ export default function TransformController({
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
-  }, [computedScale, scaleFactor, onChange]);
+  }, [computedScale, scaleFactor, onChange, onMoveEnd, widthField, heightField]);
 
   if (!selected || !box) return null;
 
@@ -163,11 +192,14 @@ export default function TransformController({
       startX: e.clientX,
       startY: e.clientY,
       startTransform: { ...IDENTITY_TRANSFORM, ...transform },
+      startW: widthVal || 0,
+      startH: heightVal || 0,
       centerScreenX: cx,
       centerScreenY: cy,
       initialAngle: (Math.atan2(e.clientY - cy, e.clientX - cx) * 180) / Math.PI,
       initialDist: Math.hypot(e.clientX - cx, e.clientY - cy),
     };
+    if (mode === 'move') onMoveStart?.();
   };
 
   const padding = 6;
@@ -316,7 +348,49 @@ export default function TransformController({
           pointerEvents: 'none',
         }}
       />
-      {/* Scale handle (bottom-right) */}
+      {/* Width handle (right edge) — independent width */}
+      {widthField && (
+        <div
+          onPointerDown={startDrag('resize-r')}
+          style={{
+            position: 'absolute',
+            right: -handleSize / 2,
+            top: h / 2 - handleSize / 2,
+            width: handleSize,
+            height: handleSize,
+            borderRadius: 3,
+            background: 'white',
+            border: '2px solid var(--norte-primary)',
+            cursor: 'ew-resize',
+            pointerEvents: 'auto',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+            touchAction: 'none',
+          }}
+          title="Drag to change width"
+        />
+      )}
+      {/* Height handle (bottom edge) — independent height */}
+      {heightField && (
+        <div
+          onPointerDown={startDrag('resize-b')}
+          style={{
+            position: 'absolute',
+            bottom: -handleSize / 2,
+            left: w / 2 - handleSize / 2,
+            width: handleSize,
+            height: handleSize,
+            borderRadius: 3,
+            background: 'white',
+            border: '2px solid var(--norte-primary)',
+            cursor: 'ns-resize',
+            pointerEvents: 'auto',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+            touchAction: 'none',
+          }}
+          title="Drag to change height"
+        />
+      )}
+      {/* Scale handle (bottom-right) — proportional */}
       <div
         onPointerDown={startDrag('scale')}
         style={{
@@ -325,15 +399,15 @@ export default function TransformController({
           bottom: -handleSize / 2,
           width: handleSize,
           height: handleSize,
-          borderRadius: 3,
-          background: 'white',
-          border: '2px solid var(--norte-primary)',
+          borderRadius: '50%',
+          background: 'var(--norte-primary)',
+          border: '2px solid white',
           cursor: 'nwse-resize',
           pointerEvents: 'auto',
           boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
           touchAction: 'none',
         }}
-        title="Drag to scale"
+        title="Drag to scale proportionally"
       />
       {/* Decorative corners */}
       {[

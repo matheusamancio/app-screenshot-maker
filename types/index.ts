@@ -127,7 +127,23 @@ export interface HabitHeroConfig {
   exploded?: boolean;
 }
 
-export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip';
+export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget';
+
+/** One row in a 'today' widget (check + emoji + name + meta). */
+export interface WidgetRow {
+  emoji: string;
+  name: string;
+  meta: string;
+  done: boolean;
+}
+
+/** One plotted line/area in a 'linechart' element. */
+export interface ChartSeries {
+  label: string;
+  color: string;
+  /** Y values per x-tick; null = no point yet (the line starts later). */
+  values: (number | null)[];
+}
 
 /** A free-floating, movable component placed on a slide (on top of the template). */
 export interface SlideElement {
@@ -164,6 +180,8 @@ export interface SlideElement {
   h?: number;
   /** Fill / background colour. */
   bg?: string;
+  /** Optional gradient end colour (vertical) for shapes. */
+  bg2?: string;
   /** Corner radius in baseline px. */
   radius?: number;
 
@@ -174,6 +192,16 @@ export interface SlideElement {
   /** Accent colour for the value/icon. */
   accent?: string;
 
+  // streak card (two-stat: current + record, divider, footer)
+  /** Second-column label, e.g. "Recorde". */
+  cardTitle2?: string;
+  /** Second-column big value, e.g. "24". */
+  cardValue2?: string;
+  /** Unit suffix shown after big values, e.g. "d". */
+  unit?: string;
+  /** Show the 🔥 flame next to the current-streak value. */
+  showFire?: boolean;
+
   // heatmap grid
   cols?: number;
   rows?: number;
@@ -182,16 +210,52 @@ export interface SlideElement {
   /** Active-cell colour (inactive derived). */
   cell?: string;
 
-  // icon (named svg)
+  // icon (named svg) — optionally on a rounded/circular tile with a check badge
   icon?: string;
 
-  // datestrip
-  /** Comma-separated day labels, e.g. "Q,S,S,D,S,T". */
+  // button (rounded pill with editable label)
+  /** Show a trailing arrow → on the button. */
+  showArrow?: boolean;
+
+  // blur panel (frosted overlay placed over the device to obscure content)
+  /** Blur radius in baseline px. */
+  blur?: number;
+
+  // phone (device frame)
+  /** Show the dynamic-island pill near the top (phone). */
+  island?: boolean;
+
+  // widget (lock-screen / home-screen Norte widgets)
+  /** Widget layout: today list · done square · month heatmap square. */
+  variant?: 'today' | 'done' | 'month';
+  /** Rows for the 'today' widget. */
+  items?: WidgetRow[];
+
+  // datestrip / charts
+  /** Comma-separated x/day labels, e.g. "Q,S,S,D,S,T" or "FEV,MAR,ABR,MAI,JUN". */
   days?: string;
-  /** Comma-separated numbers, e.g. "28,29,30,31,1,2". */
+  /** Comma-separated numbers, e.g. "28,29,30,31,1,2" (datestrip) or bar values "33,35,36,52,88". */
   dates?: string;
-  /** Index (0-based) of the highlighted day. */
+  /** Index (0-based) of the highlighted day / bar. */
   activeIndex?: number;
+
+  // heatmap card-mode chrome
+  /** When true the heatmap renders inside a card with header (cardTitle/cardValue) + footer (cardCaption). */
+  framed?: boolean;
+
+  // barchart / linechart toggle pill + chrome
+  /** Left toggle label (inactive). */
+  toggleLeft?: string;
+  /** Right toggle label (active). */
+  toggleRight?: string;
+
+  // linechart
+  /** Plotted series (linechart). */
+  series?: ChartSeries[];
+  /** Comma-separated y-axis tick labels bottom→top, e.g. "0,23,45". */
+  yTicks?: string;
+  /** Max y value used to scale the plot (defaults to the largest series value). */
+  yMax?: number;
 }
 
 export type SlideRole = 'hero' | 'use-case' | 'differentiator' | 'secondary' | 'proof' | 'cta';
@@ -305,4 +369,30 @@ export interface ProjectState {
   copyElement: (slideId: string, elementId: string) => void;
   /** Paste the clipboard element onto a slide (offset + reselected). */
   pasteElement: (slideId: string) => void;
+  /** Move an element from one slide to another at the given baseline coords. */
+  moveElementToSlide: (fromSlideId: string, toSlideId: string, elementId: string, x: number, y: number) => void;
+
+  /** Undo history (snapshots of `slides`). Internal — not persisted. */
+  _past?: Slide[][];
+  _future?: Slide[][];
+  /** Step backward / forward through edit history. */
+  undo: () => void;
+  redo: () => void;
+
+  /** True while an element is being move-dragged (shows alignment guides on every screen). */
+  isDraggingElement?: boolean;
+  setDraggingElement: (v: boolean) => void;
+
+  /** The user's custom "My Template" — a saved collection of slide designs. */
+  savedSlides?: Slide[];
+  /** Save a copy of a slide into My Template. */
+  saveSlideToTemplate: (slideId: string) => void;
+  /** Replace the whole deck with My Template's saved slides. */
+  applySavedTemplate: () => void;
+  /** Append one saved slide to the current deck. */
+  addSavedSlideToDeck: (index: number) => void;
+  /** Remove one saved slide from My Template. */
+  removeSavedSlide: (index: number) => void;
+  /** Clear My Template. */
+  clearSavedTemplate: () => void;
 }

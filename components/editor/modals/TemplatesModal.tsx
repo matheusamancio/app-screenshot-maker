@@ -175,12 +175,56 @@ function PreviewPanel({ kit, onClose, onApply }: { kit: StarterKit; onClose: () 
   );
 }
 
+/** A mini preview of a saved (full) Slide, with reuse actions. */
+function SavedSlideCard({ slide, index }: { slide: Slide; index: number }) {
+  const addSavedSlideToDeck = useProjectStore((s) => s.addSavedSlideToDeck);
+  const removeSavedSlide = useProjectStore((s) => s.removeSavedSlide);
+  const { toast } = useToast();
+  const w = 80, h = 145, innerW = 390, innerH = 844;
+  return (
+    <div className="flex flex-col items-center gap-1 flex-shrink-0">
+      <div className="relative overflow-hidden rounded-md ring-1 ring-border-default group" style={{ width: w, height: h }}>
+        <div style={{ width: innerW, height: innerH, transform: `scale(${w / innerW})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
+          <TemplateRenderer slide={slide} width={innerW} height={innerH} />
+        </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => { addSavedSlideToDeck(index); toast('Added to deck', 'success'); }}
+            className="h-6 px-2 rounded bg-white text-norte-primary text-[10px] font-semibold"
+          >
+            + Add to deck
+          </button>
+          <button
+            onClick={() => removeSavedSlide(index)}
+            className="h-6 px-2 rounded bg-white/90 text-[#DC2626] text-[10px] font-semibold"
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+      <div className="text-[9px] text-text-muted font-medium">#{index + 1}</div>
+    </div>
+  );
+}
+
 export default function TemplatesModal({ open, onClose }: Props) {
   const applyStarterKit = useProjectStore((s) => s.applyStarterKit);
   const slides = useProjectStore((s) => s.slides);
+  const savedSlides = useProjectStore((s) => s.savedSlides || []);
+  const applySavedTemplate = useProjectStore((s) => s.applySavedTemplate);
+  const clearSavedTemplate = useProjectStore((s) => s.clearSavedTemplate);
   const { toast } = useToast();
   const [previewKit, setPreviewKit] = useState<StarterKit | null>(null);
   const [keepScreens, setKeepScreens] = useState(true);
+
+  const useMyTemplate = () => {
+    if (!savedSlides.length) return;
+    const hasContent = slides.some((s) => s.screenshot || s.title.text !== 'Build something\nbeautiful.');
+    if (hasContent && !window.confirm(`Replace your ${slides.length} slide(s) with My Template (${savedSlides.length})?`)) return;
+    applySavedTemplate();
+    toast('Applied My Template', 'success');
+    onClose();
+  };
 
   const apply = (kit: StarterKit) => {
     const hasContent = slides.some((s) => s.screenshot || s.title.text !== 'Build something\nbeautiful.');
@@ -234,6 +278,33 @@ export default function TemplatesModal({ open, onClose }: Props) {
             ))}
           </div>
         </div>
+
+        {savedSlides.length > 0 && (
+          <div className="mb-4 bg-overlay border border-norte-primary/40 rounded-lg overflow-hidden">
+            <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="font-sora font-semibold text-primary text-sm">My Template</div>
+                  <span className="text-[9px] font-semibold uppercase tracking-wider bg-norte-primary-light text-norte-primary px-1.5 py-0.5 rounded">
+                    {savedSlides.length} saved
+                  </span>
+                </div>
+                <div className="text-[11px] text-text-muted">Screens you saved with the bookmark button</div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => { if (window.confirm('Clear all saved screens from My Template?')) clearSavedTemplate(); }} className="text-xs font-medium text-text-muted hover:text-[#DC2626]">Clear</button>
+                <button onClick={useMyTemplate} className="h-7 px-2.5 rounded-md bg-norte-primary text-white text-xs font-sora font-semibold hover:bg-norte-primary-hover">Use template</button>
+              </div>
+            </div>
+            <div className="px-3 pb-3 pt-1">
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {savedSlides.map((s, i) => (
+                  <SavedSlideCard key={s.id} slide={s} index={i} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {STARTER_KITS.map((kit) => (

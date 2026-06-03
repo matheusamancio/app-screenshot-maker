@@ -4,6 +4,7 @@ import React from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import SlideCanvas from './SlideCanvas';
 import { RECIPE_ROLES } from '@/lib/starterKits';
+import { useToast } from '../ui/Toast';
 
 const SLIDE_WIDTH = 268;
 
@@ -29,9 +30,19 @@ export default function MultiSlideCanvas() {
   const duplicateSlide = useProjectStore((s) => s.duplicateSlide);
   const deleteSlide = useProjectStore((s) => s.deleteSlide);
   const reorderSlides = useProjectStore((s) => s.reorderSlides);
+  const setSelectedElement = useProjectStore((s) => s.setSelectedElement);
+  const saveSlideToTemplate = useProjectStore((s) => s.saveSlideToTemplate);
+  const savedCount = useProjectStore((s) => (s.savedSlides || []).length);
+  const { toast } = useToast();
+
+  // Clicking empty canvas (outside any screen) clears the current selection.
+  const onBackgroundPointerDown = (e: React.PointerEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('[data-slide-id]')) setSelectedElement(null);
+  };
 
   return (
-    <div className="flex-1 min-w-0 dot-grid bg-overlay overflow-auto">
+    <div className="flex-1 min-w-0 dot-grid bg-overlay overflow-auto" onPointerDown={onBackgroundPointerDown}>
       <div className="h-full flex items-center gap-5 px-8 py-6" style={{ minWidth: 'max-content' }}>
         {slides.map((slide, i) => {
           const active = slide.id === activeSlideId;
@@ -45,6 +56,15 @@ export default function MultiSlideCanvas() {
                 </ToolBtn>
                 <ToolBtn title="Duplicate" onClick={() => duplicateSlide(slide.id)}>
                   <CopyIcon />
+                </ToolBtn>
+                <ToolBtn
+                  title="Save this screen to My Template"
+                  onClick={() => {
+                    saveSlideToTemplate(slide.id);
+                    toast(`Saved to My Template (${savedCount + 1} screen${savedCount + 1 !== 1 ? 's' : ''})`, 'success');
+                  }}
+                >
+                  <SaveIcon />
                 </ToolBtn>
                 <ToolBtn title="Delete" onClick={() => deleteSlide(slide.id)} disabled={slides.length < 2}>
                   <TrashIcon />
@@ -104,6 +124,13 @@ function TrashIcon() {
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6" />
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+function SaveIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
     </svg>
   );
 }

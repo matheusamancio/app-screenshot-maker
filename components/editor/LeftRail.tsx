@@ -5,8 +5,19 @@ import { useProjectStore } from '@/store/projectStore';
 import {
   newTextElement,
   newEmojiElement,
+  newHabitTile,
   newShape,
   newHeatmap,
+  newHeatmapCard,
+  newBarChart,
+  newLineChart,
+  newStreakCard,
+  newNorteLogo,
+  newLockBadge,
+  newButton,
+  newBlurPanel,
+  newPhone,
+  newHabitRow,
   newIconEl,
   newStarsEl,
   newLaurelEl,
@@ -14,6 +25,9 @@ import {
   newStreakWidget,
   newStatCard,
   newNotification,
+  newTodayWidget,
+  newDoneWidget,
+  newMonthWidget,
 } from '@/lib/elements';
 import type { SlideElement } from '@/types';
 import { fileToBase64 } from '@/lib/utils';
@@ -57,15 +71,35 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
     addElement(activeSlideId, newEmojiElement(195, 300, emoji));
   };
 
+  const addHabitTile = (emoji: string) => {
+    addElement(activeSlideId, newHabitTile(195, 300, emoji));
+    toast('Habit tile added to this screen', 'success');
+  };
+  const HABIT_TILE_EMOJIS = ['🏋️', '📚', '🧘', '🏃', '☀️', '💧', '✍️', '🍎'];
+
   const add = (el: SlideElement) => {
     addElement(activeSlideId, el);
     toast('Added to this screen', 'success');
   };
 
   const COMPONENTS: { label: string; make: () => SlideElement }[] = [
-    { label: 'Heatmap', make: () => newHeatmap() },
-    { label: 'Streak widget', make: () => newStreakWidget() },
+    { label: 'iPhone', make: () => newPhone() },
+    { label: 'Habit row', make: () => newHabitRow() },
+    { label: 'Norte logo', make: () => newNorteLogo(195, 360, false) },
+    { label: 'Norte logo ✓', make: () => newNorteLogo(195, 360, true) },
+    { label: 'Lock badge', make: () => newLockBadge() },
+    { label: 'Button', make: () => newButton() },
+    { label: 'Blur panel', make: () => newBlurPanel() },
+    { label: 'Heatmap card', make: () => newHeatmapCard() },
+    { label: 'Bar chart', make: () => newBarChart() },
+    { label: 'Line chart', make: () => newLineChart() },
+    { label: 'Streak card', make: () => newStreakCard() },
+    { label: 'Heatmap (grid)', make: () => newHeatmap() },
     { label: 'Notification', make: () => newNotification() },
+    { label: 'Today widget', make: () => newTodayWidget() },
+    { label: 'Done widget', make: () => newDoneWidget() },
+    { label: 'Month widget', make: () => newMonthWidget() },
+    { label: 'Streak widget', make: () => newStreakWidget() },
     { label: 'Stat card', make: () => newStatCard() },
     { label: 'Date strip', make: () => newDateStrip() },
     { label: 'Rounded box', make: () => newShape() },
@@ -131,6 +165,25 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
                     {COMPONENTS.map((c) => (
                       <button key={c.label} onClick={() => add(c.make())} className="px-2 py-2.5 rounded-md bg-overlay hover:bg-muted border border-border-default text-xs font-medium text-secondary text-left">
                         {c.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="section-label mb-2">Habit tiles</div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {HABIT_TILE_EMOJIS.map((e) => (
+                      <button
+                        key={e}
+                        onClick={() => addHabitTile(e)}
+                        title="Add habit tile (emoji + check)"
+                        className="relative aspect-square rounded-lg border border-border-default flex items-center justify-center text-xl"
+                        style={{ background: 'linear-gradient(150deg, #FFFFFF 0%, #F4F2ED 100%)', boxShadow: '0 4px 10px rgba(0,0,0,0.10)' }}
+                      >
+                        {e}
+                        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#111] flex items-center justify-center">
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        </span>
                       </button>
                     ))}
                   </div>

@@ -103,28 +103,109 @@ const NORTE_HEADLINES = [
   'Start [Today]\nBuild Better Habits',
 ];
 
-/** Replace the split headline parts (+ their pill background) with one pill-markup headline. */
+/**
+ * The HTML extraction captures the headline as separate absolutely-positioned
+ * nodes (a black line + a white "pill word" on its own dark pill shape). Rendered
+ * as independent centered text boxes those overlap, so for the headline ONLY we
+ * collapse those split parts (+ the pill background) into one tidy pill-markup
+ * headline. Every other captured component (device, tiles, cards, charts,
+ * heatmaps, body text) is kept exactly as extracted — faithful to the source.
+ */
 function cleanNorteScreen(els: Omit<SlideElement, 'id'>[], i: number): Omit<SlideElement, 'id'>[] {
   const kept = els.filter((e) => {
+    // drop the split headline text parts (large text in the top band)
     if (e.kind === 'text' && (e.fontSize || 0) >= 22 && (e.y || 0) < 110) return false;
-    if (e.kind === 'shape' && (e.y || 0) < 110 && (e.h || 0) < 40 && e.bg === '#1a1a1a' && (e.radius || 0) <= 8) return false;
+    // drop the small dark "pill" background behind the headline word
+    if (e.kind === 'shape' && (e.y || 0) < 110 && (e.h || 0) < 40 && e.bg === '#1a1a1a' && (e.radius || 0) <= 9) return false;
     return true;
   });
   const headline: Omit<SlideElement, 'id'> = {
-    kind: 'text', x: 195, y: 78, rotation: 0, scale: 1,
+    kind: 'text', x: 195, y: 80, rotation: 0, scale: 1,
     text: NORTE_HEADLINES[i] || NORTE_SCREEN_TITLES[i] || '',
-    fontSize: 30, fontWeight: 800, color: '#1a1a1a', align: 'center', width: 360,
+    fontSize: 29, fontWeight: 800, color: '#1a1a1a', align: 'center', width: 360,
   };
   return [...kept, headline];
 }
 
-/** Each Norte screen, extracted faithfully from the source HTML as editable components — no flat image. */
+type RawEl = Omit<SlideElement, 'id'>;
+const near = (e: RawEl, x: number, y: number, tol = 5) =>
+  Math.abs((e.x || 0) - x) <= tol && Math.abs((e.y || 0) - y) <= tol;
+const anyNear = (e: RawEl, pts: number[][], tol = 6) => pts.some(([x, y]) => near(e, x, y, tol));
+
+/**
+ * Swap the hand-built primitive clusters in each Norte screen for the polished,
+ * reusable components (streak card, bar/line charts, framed heatmap, app logo,
+ * button, lock badge, habit tiles). Runs after cleanNorteScreen.
+ */
+function upgradeNorteScreen(els: RawEl[], i: number): RawEl[] {
+  let out = els.map((e) => ({ ...e }));
+  const drop = (pred: (e: RawEl) => boolean) => { out = out.filter((e) => !pred(e)); };
+  const add = (e: Partial<RawEl> & { kind: SlideElement['kind']; x: number; y: number }) =>
+    out.push({ rotation: 0, scale: 1, ...e } as RawEl);
+
+  if (i === 0) {
+    // Floating habit tiles → real habit-tile components (white tile + check badge)
+    const tiles = [[264, 287], [132, 287], [336, 237], [54, 237], [61, 348], [330, 350], [197, 214]];
+    const dots = [[74, 210], [162, 263], [219, 189], [294, 265], [364, 218], [87, 327], [350, 324]];
+    drop((e) => e.kind === 'shape' && e.bg === '#fcfbf8' && anyNear(e, tiles, 6));
+    drop((e) => e.kind === 'shape' && e.bg === '#1a1a1a' && (e.w || 0) <= 22 && anyNear(e, dots, 8));
+    out = out.map((e) => (e.kind === 'emoji' && anyNear(e, tiles, 8) ? { ...e, tile: true, check: true, size: 58 } : e));
+  } else if (i === 1) {
+    // Compact habit list → Habit-row card components (check toggle + emoji + name + streak)
+    drop((e) => e.kind === 'shape' && (near(e, 195, 394, 7) || near(e, 195, 445, 7) || near(e, 195, 496, 7) || near(e, 118, 394, 7) || near(e, 118, 445, 7)));
+    drop((e) => e.kind === 'text' && (near(e, 185, 388, 8) || near(e, 185, 402, 8) || near(e, 185, 439, 8) || near(e, 185, 453, 8) || near(e, 185, 490, 8) || near(e, 185, 505, 8)));
+    const rowDef = (y: number, emoji: string, name: string, cap: string, on: boolean): Partial<RawEl> & { kind: SlideElement['kind']; x: number; y: number } =>
+      ({ kind: 'habitrow', x: 195, y, w: 205, h: 44, radius: 12, bg: '#F6F4EF', color: '#1A1A1A', emoji, text: name, cardCaption: cap, check: on, cols: 0 });
+    add(rowDef(396, '🏋️', 'exercitar 20min', '7D · 54%', true));
+    add(rowDef(447, '📚', 'Leitura', '3D · 38%', true));
+    add(rowDef(498, '💊', 'Vitamina D', '1D · 36%', false));
+    // Bottom habit-grid card → framed Heatmap card component
+    drop((e) => e.kind === 'shape' && near(e, 195, 613, 8));
+    drop((e) => e.kind === 'heatmap' && near(e, 196, 618, 10));
+    drop((e) => e.kind === 'text' && (near(e, 172, 720, 8) || near(e, 306, 720, 8) || near(e, 131, 510, 8) || near(e, 307, 510, 8) || near(e, 317, 513, 8)));
+    add({ kind: 'heatmap', framed: true, x: 195, y: 620, w: 284, h: 250, cols: 11, rows: 7, fill: 0.5, cell: '#1A1A1A', bg: '#D8D5CE', radius: 16, color: '#F6F4EF', cardTitle: '🏋️ exercitar 20min', cardValue: '54', cardCaption: 'Cada quadrado = um dia · escuro = cumprido' });
+  } else if (i === 2) {
+    // Two-stat streak card → Streak component
+    drop((e) => e.kind === 'shape' && (near(e, 195, 394, 8) || near(e, 282, 462, 8)));
+    drop((e) => (e.kind === 'text' || e.kind === 'emoji') && (near(e, 153, 349) || near(e, 153, 390) || near(e, 150, 400) || near(e, 176, 396) || near(e, 240, 339) || near(e, 240, 369) || near(e, 267, 379) || near(e, 195, 444)));
+    add({ kind: 'streak', x: 195, y: 394, w: 212, bg: '#1A1A1A', radius: 16, cardTitle: 'Sequência atual', cardValue: '9', cardTitle2: 'Recorde', cardValue2: '16', cardCaption: 'Cumprido hoje', unit: 'd', showFire: false, accent: '#E8923C' });
+  } else if (i === 4) {
+    // Privacy lock circle → Lock badge component
+    drop((e) => e.kind === 'shape' && near(e, 195, 316, 8) && (e.w || 0) < 70);
+    add({ kind: 'icon', icon: 'lock', tile: true, x: 195, y: 316, size: 57, radius: 28, bg: '#1A1A1A', color: '#FFFFFF', check: false });
+  } else if (i === 5) {
+    // Bar chart cluster → Bar chart component
+    const barShapes = [[195, 386], [195, 262], [242, 262], [264, 373], [230, 395], [195, 405], [161, 405], [126, 407]];
+    drop((e) => e.kind === 'shape' && anyNear(e, barShapes, 6));
+    const barTexts = [[149, 262], [242, 262], [126, 447], [161, 447], [195, 447], [230, 447], [264, 447], [126, 461], [161, 461], [195, 461], [230, 461], [264, 461]];
+    drop((e) => e.kind === 'text' && anyNear(e, barTexts, 5));
+    add({ kind: 'barchart', x: 195, y: 360, w: 200, h: 235, radius: 14, bg: '#F6F4EF', cell: '#C9C5BD', accent: '#1A1A1A', toggleLeft: 'Dia da semana', toggleRight: 'Mês a mês', days: 'FEV,MAR,ABR,MAI,JUN', dates: '33,35,36,52,88', activeIndex: 4 });
+    // Line chart cluster → Line chart component
+    drop((e) => e.kind === 'shape' && (near(e, 195, 583, 10) || anyNear(e, [[105, 500], [243, 500], [179, 500]], 6)));
+    const lineTexts = [[105, 500], [179, 500], [243, 500], [74, 537], [74, 591], [76, 641], [314, 534], [314, 588], [314, 605], [106, 651], [163, 651], [217, 651], [271, 651], [322, 651], [195, 671]];
+    drop((e) => e.kind === 'text' && anyNear(e, lineTexts, 5));
+    add({ kind: 'linechart', x: 195, y: 592, w: 300, h: 205, radius: 14, bg: '#FFFFFF', days: 'Fev,Mar,Abr,Mai,Jun', yTicks: '0,23,45', yMax: 50, cardCaption: 'Mais íngreme = mais consistente', series: [
+      { label: 'exercitar 20min', color: '#6F7D5E', values: [0, 6, 16, 31, 45] },
+      { label: 'Leitura', color: '#7C6FD6', values: [null, 0, 6, 15, 23] },
+      { label: 'Vitamina D', color: '#C4AE7A', values: [null, null, 4, 12, 20] },
+    ] });
+  } else if (i === 6) {
+    // App icon → Norte logo (with orange check); CTA pill → Button component
+    drop((e) => e.kind === 'shape' && (near(e, 195, 365, 8) || near(e, 233, 328, 8) || near(e, 195, 541, 8)));
+    drop((e) => e.kind === 'text' && near(e, 195, 541, 8));
+    add({ kind: 'icon', icon: 'mountain', tile: true, x: 195, y: 365, size: 90, radius: 21, bg: '#1C1C1E', color: '#F4F2ED', check: true, accent: '#E8923C' });
+    add({ kind: 'button', x: 195, y: 541, text: 'Get Norte — Free', showArrow: true, bg: '#1A1A1A', color: '#F4F2ED', fontSize: 15, radius: 23, h: 46 });
+  }
+  return out;
+}
+
+/** Each Norte screen, extracted faithfully from the source HTML then upgraded to use the reusable components. */
 const NORTE_COMPONENTS_SLIDES: StarterKitSlide[] = NORTE_SCREENS.map((elements, i) => ({
   role: NORTE_ROLES[i] || 'secondary',
   template: 'hero' as const,
   title: NORTE_SCREEN_TITLES[i] || '',
   noChrome: true,
-  elements: cleanNorteScreen(elements, i),
+  elements: upgradeNorteScreen(cleanNorteScreen(elements, i), i),
 }));
 
 export const STARTER_KITS: StarterKit[] = [

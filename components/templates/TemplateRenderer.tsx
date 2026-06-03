@@ -29,6 +29,7 @@ interface Props {
   // Free-element editing (omitted in export/preview → static)
   onElementSelect?: (sel: string) => void;
   onElementTextChange?: (id: string, text: string) => void;
+  onElementToggleCheck?: (id: string) => void;
   onElementEditStart?: (id: string) => void;
   onElementEditEnd?: () => void;
   editingElementId?: string | null;
@@ -75,6 +76,7 @@ export default function TemplateRenderer({
   onElementPointerDown,
   onElementSelect,
   onElementTextChange,
+  onElementToggleCheck,
   onElementEditStart,
   onElementEditEnd,
   editingElementId,
@@ -118,6 +120,7 @@ export default function TemplateRenderer({
         fontFamily={fontFamilyOverride || slide.title.fontFamily}
         onSelect={onElementSelect}
         onTextChange={onElementTextChange}
+        onToggleCheck={onElementToggleCheck}
         onEditStart={onElementEditStart}
         onEditEnd={onElementEditEnd}
         editingId={editingElementId}

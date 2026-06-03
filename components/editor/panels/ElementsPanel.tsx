@@ -179,10 +179,12 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
   const box = sel.kind === 'shape' || sel.kind === 'card';
   return (
     <div className="space-y-3">
-      {(sel.kind === 'shape' || sel.kind === 'card' || sel.kind === 'heatmap' || sel.kind === 'datestrip') && (
-        <Slider label="Width" value={sel.w || 200} min={40} max={360} suffix="px" onChange={(v) => update({ w: v })} />
+      {(sel.kind === 'shape' || sel.kind === 'card' || sel.kind === 'heatmap' || sel.kind === 'datestrip' || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'streak' || sel.kind === 'blur') && (
+        <Slider label="Width" value={sel.w || 200} min={40} max={380} suffix="px" onChange={(v) => update({ w: v })} />
       )}
-      {box && <Slider label="Height" value={sel.h || 120} min={40} max={420} suffix="px" onChange={(v) => update({ h: v })} />}
+      {(box || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'blur' || (sel.kind === 'heatmap' && sel.framed)) && (
+        <Slider label="Height" value={sel.h || 120} min={40} max={460} suffix="px" onChange={(v) => update({ h: v })} />
+      )}
       {box && (
         <div className="grid grid-cols-2 gap-2">
           <div>
@@ -213,14 +215,91 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
 
       {sel.kind === 'heatmap' && (
         <>
+          {sel.framed && (
+            <>
+              <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="🏋️ exercitar 20min" />
+              <TextField value={sel.cardValue || ''} onChange={(v) => update({ cardValue: v })} placeholder="54 (percent)" />
+              <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Cada quadrado = um dia · escuro = cumprido" />
+            </>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <Slider label="Columns" value={sel.cols || 12} min={4} max={20} onChange={(v) => update({ cols: v })} />
             <Slider label="Rows" value={sel.rows || 7} min={3} max={12} onChange={(v) => update({ rows: v })} />
           </div>
           <Slider label="Fill" value={Math.round((sel.fill ?? 0.5) * 100)} min={0} max={100} suffix="%" onChange={(v) => update({ fill: v / 100 })} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Filled cell</div>
+              <ColorPicker color={sel.cell || '#1C1C1E'} onChange={(c) => update({ cell: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Empty cell</div>
+              <ColorPicker color={sel.bg || '#D8D5CE'} onChange={(c) => update({ bg: c })} />
+            </div>
+          </div>
+          {sel.framed && (
+            <div>
+              <div className="section-label mb-1.5">Card background</div>
+              <ColorPicker color={sel.color || '#F4F2ED'} onChange={(c) => update({ color: c })} />
+            </div>
+          )}
+        </>
+      )}
+
+      {sel.kind === 'barchart' && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <TextField value={sel.toggleLeft || ''} onChange={(v) => update({ toggleLeft: v })} placeholder="Dia da semana" />
+            <TextField value={sel.toggleRight || ''} onChange={(v) => update({ toggleRight: v })} placeholder="Mês a mês" />
+          </div>
+          <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="FEV,MAR,ABR,MAI,JUN" />
+          <TextField value={sel.dates || ''} onChange={(v) => update({ dates: v })} placeholder="33,35,36,52,88" />
+          <Slider label="Highlight bar" value={sel.activeIndex ?? 4} min={0} max={9} onChange={(v) => update({ activeIndex: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Bar colour</div>
+              <ColorPicker color={sel.cell || '#C9C5BD'} onChange={(c) => update({ cell: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Highlight</div>
+              <ColorPicker color={sel.accent || '#1A1A1A'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
           <div>
-            <div className="section-label mb-1.5">Filled cell colour</div>
-            <ColorPicker color={sel.cell || '#1C1C1E'} onChange={(c) => update({ cell: c })} />
+            <div className="section-label mb-1.5">Card background</div>
+            <ColorPicker color={sel.bg || '#F4F2ED'} onChange={(c) => update({ bg: c })} />
+          </div>
+        </>
+      )}
+
+      {sel.kind === 'linechart' && (
+        <>
+          <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="Fev,Mar,Abr,Mai,Jun" />
+          <div className="grid grid-cols-2 gap-2">
+            <TextField value={sel.yTicks || ''} onChange={(v) => update({ yTicks: v })} placeholder="0,23,45" />
+            <Slider label="Y max" value={sel.yMax || 50} min={5} max={200} onChange={(v) => update({ yMax: v })} />
+          </div>
+          <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Mais íngreme = mais consistente" />
+          {(sel.series || []).map((s, i) => (
+            <div key={i} className="rounded-md border border-border-default p-2 space-y-2">
+              <div className="flex items-center gap-2">
+                <ColorPicker color={s.color} onChange={(c) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, color: c } : x)) })} />
+                <input
+                  value={s.label}
+                  onChange={(e) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })}
+                  className="flex-1 min-w-0 px-2 py-1 rounded bg-overlay border border-border-default text-xs text-primary"
+                />
+              </div>
+              <TextField
+                value={s.values.map((v) => (v == null ? '' : v)).join(',')}
+                onChange={(v) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, values: v.split(',').map((t) => (t.trim() === '' ? null : parseFloat(t))) } : x)) })}
+                placeholder="0,6,16,31,45 (empty = no point)"
+              />
+            </div>
+          ))}
+          <div>
+            <div className="section-label mb-1.5">Card background</div>
+            <ColorPicker color={sel.bg || '#F4F2ED'} onChange={(c) => update({ bg: c })} />
           </div>
         </>
       )}
@@ -235,10 +314,216 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
               ))}
             </div>
           </div>
-          <Slider label="Size" value={sel.w || 40} min={16} max={120} suffix="px" onChange={(v) => update({ w: v, h: v })} />
+          {sel.tile ? (
+            <Slider label="Size" value={sel.size || 64} min={32} max={160} suffix="px" onChange={(v) => update({ size: v })} />
+          ) : (
+            <Slider label="Size" value={sel.w || 40} min={16} max={120} suffix="px" onChange={(v) => update({ w: v, h: v })} />
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Glyph</div>
+              <ColorPicker color={sel.color || '#111111'} onChange={(c) => update({ color: c })} />
+            </div>
+            {sel.tile && (
+              <div>
+                <div className="section-label mb-1.5">Tile</div>
+                <ColorPicker color={sel.bg || '#1A1A1A'} onChange={(c) => update({ bg: c })} />
+              </div>
+            )}
+          </div>
+          {sel.tile && (
+            <>
+              <Slider label="Corner radius" value={sel.radius ?? 12} min={0} max={Math.round((sel.size || 64) / 2)} suffix="px" onChange={(v) => update({ radius: v })} />
+              <label className="flex items-center justify-between gap-2 px-1">
+                <span className="section-label">Check badge</span>
+                <Toggle on={!!sel.check} onToggle={() => update({ check: !sel.check })} />
+              </label>
+              {sel.check && (
+                <div>
+                  <div className="section-label mb-1.5">Badge colour</div>
+                  <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {sel.kind === 'button' && (
+        <>
+          <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="Get Norte — Free" />
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Text size" value={sel.fontSize || 17} min={11} max={32} suffix="px" onChange={(v) => update({ fontSize: v })} />
+            <Slider label="Height" value={sel.h || 56} min={32} max={96} suffix="px" onChange={(v) => update({ h: v })} />
+          </div>
+          <Slider label="Radius" value={sel.radius ?? 28} min={0} max={48} onChange={(v) => update({ radius: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Background</div>
+              <ColorPicker color={sel.bg || '#1A1A1A'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Text colour</div>
+              <ColorPicker color={sel.color || '#F4F2ED'} onChange={(c) => update({ color: c })} />
+            </div>
+          </div>
+          <label className="flex items-center justify-between gap-2 px-1">
+            <span className="section-label">Trailing arrow →</span>
+            <Toggle on={sel.showArrow !== false} onToggle={() => update({ showArrow: sel.showArrow === false })} />
+          </label>
+          <p className="text-[11px] text-text-muted">Double-click the button on the canvas to edit its text.</p>
+        </>
+      )}
+
+      {sel.kind === 'blur' && (
+        <>
+          <Slider label="Blur" value={sel.blur ?? 7} min={1} max={24} suffix="px" onChange={(v) => update({ blur: v })} />
+          <Slider label="Radius" value={sel.radius ?? 16} min={0} max={48} onChange={(v) => update({ radius: v })} />
+          <p className="text-[11px] text-text-muted">Place over the device to frost the content behind it.</p>
+        </>
+      )}
+
+      {sel.kind === 'habitrow' && (
+        <>
+          <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
+            <input
+              value={sel.emoji || ''}
+              onChange={(e) => update({ emoji: e.target.value })}
+              className="w-12 px-2 py-1.5 rounded bg-overlay border border-border-default text-center text-lg"
+              title="Emoji"
+            />
+            <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="Habit name" />
+          </div>
+          <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="7D · 54%" />
+          <label className="flex items-center justify-between gap-2 px-1">
+            <span className="section-label">Done (checked)</span>
+            <Toggle on={!!sel.check} onToggle={() => update({ check: !sel.check })} />
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Heat cols" value={sel.cols || 7} min={4} max={12} onChange={(v) => update({ cols: v })} />
+            <Slider label="Heat rows" value={sel.rows || 6} min={3} max={8} onChange={(v) => update({ rows: v })} />
+          </div>
+          <Slider label="Heat fill" value={Math.round((sel.fill ?? 0.45) * 100)} min={0} max={100} suffix="%" onChange={(v) => update({ fill: v / 100 })} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Card</div>
+              <ColorPicker color={sel.bg || '#F4F2ED'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Ink</div>
+              <ColorPicker color={sel.color || '#1A1A1A'} onChange={(c) => update({ color: c, cell: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Double-click the name to edit it · click the circle on the card to flag/unflag.</p>
+        </>
+      )}
+
+      {sel.kind === 'phone' && (
+        <>
+          <Slider label="Radius" value={sel.radius ?? 46} min={12} max={72} suffix="px" onChange={(v) => update({ radius: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Top colour</div>
+              <ColorPicker color={sel.bg || '#000000'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Bottom colour</div>
+              <ColorPicker color={sel.bg2 || '#A6A6A6'} onChange={(c) => update({ bg2: c })} />
+            </div>
+          </div>
+          <label className="flex items-center justify-between gap-2 px-1">
+            <span className="section-label">Dynamic island</span>
+            <Toggle on={sel.island !== false} onToggle={() => update({ island: sel.island === false })} />
+          </label>
+        </>
+      )}
+
+      {sel.kind === 'notification' && (
+        <>
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="NORTE" />
+            <input value={sel.cardValue || ''} onChange={(e) => update({ cardValue: e.target.value })} className="w-16 px-2 py-1.5 rounded bg-overlay border border-border-default text-xs text-primary" title="Time" />
+          </div>
+          <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="Hora de meditar 🧘" />
+          <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Body text" />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Background</div>
+              <ColorPicker color={sel.bg || '#FBFAF8'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Title ink</div>
+              <ColorPicker color={sel.color || '#1A1A1A'} onChange={(c) => update({ color: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Double-click on the canvas to edit the title.</p>
+        </>
+      )}
+
+      {sel.kind === 'widget' && (
+        <>
           <div>
-            <div className="section-label mb-1.5">Colour</div>
-            <ColorPicker color={sel.color || '#111111'} onChange={(c) => update({ color: c })} />
+            <div className="section-label mb-1.5">Layout</div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {(['today', 'done', 'month'] as const).map((v) => (
+                <button key={v} onClick={() => update({ variant: v })} className={`py-1.5 rounded-md text-[11px] capitalize border ${ (sel.variant || 'today') === v ? 'border-norte-primary bg-norte-primary-light text-norte-primary' : 'border-border-default bg-overlay text-secondary'}`}>{v}</button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="NORTE · HOJE" />
+            <input value={sel.cardValue || ''} onChange={(e) => update({ cardValue: e.target.value })} className="w-20 px-2 py-1.5 rounded bg-overlay border border-border-default text-xs text-primary" title="Header right" />
+          </div>
+          {(sel.variant || 'today') === 'today' ? (
+            <div className="space-y-2">
+              <div className="section-label">Rows</div>
+              {(sel.items || []).map((it, i) => (
+                <div key={i} className="rounded-md border border-border-default p-2 space-y-1.5">
+                  <div className="grid grid-cols-[auto_1fr] gap-1.5">
+                    <input value={it.emoji} onChange={(e) => update({ items: (sel.items || []).map((x, j) => (j === i ? { ...x, emoji: e.target.value } : x)) })} className="w-10 px-1 py-1 rounded bg-overlay border border-border-default text-center" />
+                    <input value={it.name} onChange={(e) => update({ items: (sel.items || []).map((x, j) => (j === i ? { ...x, name: e.target.value } : x)) })} className="min-w-0 px-2 py-1 rounded bg-overlay border border-border-default text-xs text-primary" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input value={it.meta} onChange={(e) => update({ items: (sel.items || []).map((x, j) => (j === i ? { ...x, meta: e.target.value } : x)) })} className="w-14 px-2 py-1 rounded bg-overlay border border-border-default text-xs text-primary" placeholder="7d" />
+                    <span className="section-label flex-1">Done</span>
+                    <Toggle on={it.done} onToggle={() => update({ items: (sel.items || []).map((x, j) => (j === i ? { ...x, done: !x.done } : x)) })} />
+                    <button onClick={() => update({ items: (sel.items || []).filter((_, j) => j !== i) })} className="text-[#DC2626] text-xs px-1">✕</button>
+                  </div>
+                </div>
+              ))}
+              <button onClick={() => update({ items: [...(sel.items || []), { emoji: '✅', name: 'New habit', meta: '1d', done: false }] })} className="w-full py-1.5 rounded-md border border-dashed border-border-default text-xs text-secondary">+ Add row</button>
+            </div>
+          ) : (
+            <>
+              <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="Title" />
+              <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder={sel.variant === 'month' ? 'ESTE MÊS · 54%' : 'CUMPRIDO HOJE'} />
+              {sel.variant === 'done' && (
+                <div className="flex items-center gap-2">
+                  <TextField value={sel.cardValue2 || ''} onChange={(v) => update({ cardValue2: v })} placeholder="2/30" />
+                  <span className="section-label">Done</span>
+                  <Toggle on={!!sel.check} onToggle={() => update({ check: !sel.check })} />
+                </div>
+              )}
+              {sel.variant === 'month' && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Slider label="Cols" value={sel.cols || 7} min={4} max={10} onChange={(v) => update({ cols: v })} />
+                    <Slider label="Rows" value={sel.rows || 5} min={3} max={7} onChange={(v) => update({ rows: v })} />
+                  </div>
+                  <Slider label="Fill" value={Math.round((sel.fill ?? 0.5) * 100)} min={0} max={100} suffix="%" onChange={(v) => update({ fill: v / 100 })} />
+                </>
+              )}
+            </>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Background</div>
+              <ColorPicker color={sel.bg || '#1A1A1A'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Accent</div>
+              <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+            </div>
           </div>
         </>
       )}
@@ -262,6 +547,34 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
           <div>
             <div className="section-label mb-1.5">Colour</div>
             <ColorPicker color={sel.color || '#111111'} onChange={(c) => update({ color: c })} />
+          </div>
+        </>
+      )}
+
+      {sel.kind === 'streak' && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="Sequência atual" />
+            <TextField value={sel.cardValue || ''} onChange={(v) => update({ cardValue: v })} placeholder="15" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <TextField value={sel.cardTitle2 || ''} onChange={(v) => update({ cardTitle2: v })} placeholder="Recorde" />
+            <TextField value={sel.cardValue2 || ''} onChange={(v) => update({ cardValue2: v })} placeholder="24" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <TextField value={sel.unit || ''} onChange={(v) => update({ unit: v })} placeholder="Unit (d)" />
+            <label className="flex items-center justify-between gap-2 px-1">
+              <span className="section-label">Flame</span>
+              <Toggle on={sel.showFire !== false} onToggle={() => update({ showFire: sel.showFire === false })} />
+            </label>
+          </div>
+          <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Cumprido hoje" />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Card background</div>
+              <ColorPicker color={sel.bg || '#1A1A1A'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <Slider label="Radius" value={sel.radius ?? 28} min={0} max={48} onChange={(v) => update({ radius: v })} />
           </div>
         </>
       )}
