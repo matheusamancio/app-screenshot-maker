@@ -21,6 +21,8 @@ export interface StarterKitSlide {
   featureMore?: boolean;
   /** Free movable components seeded onto the slide (ids assigned on apply). */
   elements?: Omit<SlideElement, 'id'>[];
+  /** A finished full-bleed screenshot (public URL). Hides title + device. */
+  fullImage?: string;
 }
 
 export const RECIPE_ROLES: { id: RecipeRole; label: string; hint: string }[] = [
@@ -57,6 +59,31 @@ const NORTE_EMOJI = (x: number, y: number, emoji: string, rotation: number): Omi
 });
 
 export const STARTER_KITS: StarterKit[] = [
+  {
+    id: 'norte-designs',
+    name: 'Norte · Designs',
+    tagline: 'Your 6 finished App Store screens',
+    swatch: '#111111',
+    background: { type: 'solid', solidColor: '#EDEBE5' },
+    title: {
+      fontFamily: 'Archivo',
+      fontSize: 40,
+      fontWeight: 800,
+      color: '#111111',
+      subtitleColor: '#6B6B6B',
+      subtitleFontSize: 18,
+      alignment: 'center',
+    },
+    device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 86 },
+    slides: [
+      { role: 'hero', template: 'hero', title: 'One Tap. One Square.', fullImage: '/norte/1-today.png' },
+      { role: 'use-case', template: 'hero', title: 'Build Daily Streaks', fullImage: '/norte/2-streaks.png' },
+      { role: 'differentiator', template: 'hero', title: 'Gentle Nudges, Real Habits', fullImage: '/norte/3-science.png' },
+      { role: 'secondary', template: 'hero', title: 'Private by Design', fullImage: '/norte/4-privacy.png' },
+      { role: 'secondary', template: 'hero', title: 'See Your Whole Year', fullImage: '/norte/5-year.png' },
+      { role: 'cta', template: 'hero', title: 'Start Today', fullImage: '/norte/6-start.png' },
+    ],
+  },
   {
     id: 'norte-store',
     name: 'Norte · App Store',

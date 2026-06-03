@@ -257,11 +257,14 @@ export const useProjectStore = create<ProjectState>()(
           const existingScreenshots = state.slides.map((s) => s.screenshot);
           const newSlides: Slide[] = kit.slides.map((ks, i) => {
             const id = uid();
+            const full = ks.fullImage;
             return {
               id,
               screenshot: options.keepScreenshots ? existingScreenshots[i] || null : null,
               template: ks.template,
-              background: JSON.parse(JSON.stringify(kit.background)),
+              background: full
+                ? { type: 'image', imageBase64: full }
+                : JSON.parse(JSON.stringify(kit.background)),
               title: {
                 ...defaultTitle,
                 ...kit.title,
@@ -269,13 +272,14 @@ export const useProjectStore = create<ProjectState>()(
                 subtitle: ks.subtitle || '',
                 showSubtitle: !!ks.showSubtitle,
                 ...(ks.titleOverride || {}),
-                layer: { visible: true, opacity: 1, locked: false },
+                layer: { visible: !full, opacity: 1, locked: false },
               },
               device: {
                 ...defaultDevice,
                 frameType: kit.device.frameType,
                 frameStyle: kit.device.frameStyle,
                 scale: kit.device.scale,
+                layer: { visible: !full, opacity: 1, locked: false },
               },
               overlayImage: { ...defaultOverlay },
               localizations: {},

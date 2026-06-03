@@ -15,11 +15,12 @@ interface Props {
 
 function kitToSlide(kit: StarterKit, idx: number): Slide {
   const ks = kit.slides[idx % kit.slides.length];
+  const full = ks.fullImage;
   return {
     id: `${kit.id}-${idx}`,
     screenshot: null,
     template: ks.template,
-    background: kit.background,
+    background: full ? { type: 'image', imageBase64: full } : kit.background,
     title: {
       text: ks.title,
       subtitle: ks.subtitle || '',
@@ -33,7 +34,7 @@ function kitToSlide(kit: StarterKit, idx: number): Slide {
       alignment: kit.title.alignment,
       position: 'top',
       floatingPosition: 'top',
-      layer: { visible: true, opacity: 1, locked: false },
+      layer: { visible: !full, opacity: 1, locked: false },
     },
     device: {
       frameType: kit.device.frameType,
@@ -41,7 +42,7 @@ function kitToSlide(kit: StarterKit, idx: number): Slide {
       orientation: 'portrait',
       scale: kit.device.scale,
       verticalPosition: 'center',
-      layer: { visible: true, opacity: 1, locked: false },
+      layer: { visible: !full, opacity: 1, locked: false },
     },
     overlayImage: { imageBase64: null, fit: 'contain', opacity: 1, verticalPosition: 'center', layer: { visible: true, opacity: 1, locked: false } },
     localizations: {},
