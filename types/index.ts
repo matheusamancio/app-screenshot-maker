@@ -29,8 +29,10 @@ export interface LocalizationCell {
   lang: Language;
   /** 'title' | 'subtitle' for the built-in title, or 'element' for a text component. */
   field: LocalizationField | 'element';
-  /** Target text-element id when field === 'element'. */
+  /** Target element id when field === 'element'. */
   elementId?: string;
+  /** Field path within the element (e.g. `text`, `cardTitle`, `items.0.name`). Defaults to `text`. */
+  elementField?: string;
   value: string;
 }
 export type BackgroundType = 'solid' | 'linear-gradient' | 'radial-gradient' | 'image' | 'mesh' | 'none';
@@ -163,8 +165,8 @@ export interface SlideElement {
   fontFamily?: string;
   /** Text box width in baseline px (auto when omitted). */
   width?: number;
-  /** Per-language text overrides (text elements only). */
-  loc?: Partial<Record<Language, string>>;
+  /** Per-language text overrides, keyed by field path (e.g. `text`, `cardTitle`, `items.0.name`). */
+  loc?: Partial<Record<Language, Record<string, string>>>;
   // emoji
   emoji?: string;
   /** Render the emoji on a white rounded tile. */
@@ -321,6 +323,32 @@ export interface SetupConfig {
   defaultLanguage: Language;
 }
 
+/** A self-contained snapshot of an editable deck (everything needed to restore it). */
+export interface ProjectDeck {
+  name: string;
+  platform: Platform;
+  appName: string;
+  defaultLanguage: Language;
+  slides: Slide[];
+  activeSlideId: string;
+  previewDeviceId: string;
+  activeLanguage: Language;
+  enabledLanguages: Language[];
+  globals: GlobalSettings;
+  activeKitId: string | null;
+}
+
+/** A saved project (or template) in the local library. */
+export interface SavedProject {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  /** Template projects are reused to spawn new working projects, never edited in place. */
+  isTemplate?: boolean;
+  deck: ProjectDeck;
+}
+
 export interface ProjectState {
   name: string;
   platform: Platform;
@@ -350,7 +378,7 @@ export interface ProjectState {
   /** Set a single localized field, routing the base language to the slide's own text. */
   setLocalizedText: (slideId: string, lang: Language, field: LocalizationField, value: string) => void;
   /** Set a text component's value for a language (base language writes element.text). */
-  setElementLocalizedText: (slideId: string, elementId: string, lang: Language, value: string) => void;
+  setElementLocalizedText: (slideId: string, elementId: string, lang: Language, value: string, field?: string) => void;
   /** Apply many localized cells at once (used by grid block-paste). */
   applyLocalizationCells: (cells: LocalizationCell[]) => void;
   updateGlobals: (g: Partial<GlobalSettings>) => void;
@@ -392,6 +420,30 @@ export interface ProjectState {
   /** Remove the given elements from their group. */
   ungroupElements: (slideId: string, ids: string[]) => void;
   clipboardElement: SlideElement | null;
+
+  // ── Projects library (Miro-style: many projects, save/edit, turn into templates) ──
+  /** All saved projects + templates in the local library. */
+  projects?: SavedProject[];
+  /** The project currently being edited (null = unsaved working deck). */
+  currentProjectId?: string | null;
+  /** Snapshot the current deck into the library (updates the current project or creates one). Returns its id. */
+  saveProject: (name?: string) => string;
+  /** Save the current deck as a reusable template. */
+  saveProjectAsTemplate: (name?: string) => void;
+  /** Start a fresh blank working deck (unsaved). */
+  newProject: (name?: string) => void;
+  /** Load a saved project (or template) into the editor as the working deck. */
+  openProject: (id: string) => void;
+  deleteProject: (id: string) => void;
+  renameProject: (id: string, name: string) => void;
+  duplicateProject: (id: string) => void;
+  /** Create a template from an existing saved project (without touching the working deck). */
+  templatizeProject: (id: string) => void;
+
+  /** Most-recently-used colours (newest first), shown as swatches in the colour picker. */
+  recentColors?: string[];
+  /** Record a colour as recently used (deduped, capped, newest first). */
+  addRecentColor: (color: string) => void;
   addElement: (slideId: string, element: SlideElement, opts?: { select?: boolean }) => void;
   updateElement: (slideId: string, elementId: string, patch: Partial<SlideElement>) => void;
   deleteElement: (slideId: string, elementId: string) => void;

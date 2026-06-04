@@ -161,13 +161,14 @@ export function newDateStrip(x = 195, y = 280): SlideElement {
 export function newStreakWidget(x = 195, y = 460): SlideElement {
   return { ...base(x, y), kind: 'card', w: 300, h: 150, bg: '#1C1C1E', radius: 24, cardTitle: 'Sequência atual', cardValue: '9d', cardCaption: '✓ Cumprido hoje', accent: '#FFFFFF', fontSize: 48 };
 }
-/** Two-stat streak card: current streak + record, divider, "Cumprido hoje" footer. */
+/** Two-stat streak card: current streak + best, divider, flag/unflag check-in row. */
 export function newStreakCard(x = 195, y = 460): SlideElement {
   return {
-    ...base(x, y), kind: 'streak', w: 320, h: 200, radius: 28, bg: '#1A1A1A',
-    cardTitle: 'Sequência atual', cardValue: '15',
-    cardTitle2: 'Recorde', cardValue2: '24',
-    cardCaption: 'Cumprido hoje', unit: 'd', showFire: true, accent: '#E8923C',
+    ...base(x, y), kind: 'streak', w: 320, h: 200, radius: 30, bg: '#161616',
+    cardTitle: 'Current streak', cardValue: '10',
+    cardTitle2: 'Best ever', cardValue2: '19',
+    cardCaption: 'Kept today', text: 'Check in today',
+    unit: 'd', showFire: true, check: true, accent: '#E8923C',
   };
 }
 export function newStatCard(x = 130, y = 600): SlideElement {

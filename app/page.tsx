@@ -12,6 +12,8 @@ import LocalizeModal from '@/components/editor/modals/LocalizeModal';
 import ExportModal from '@/components/editor/modals/ExportModal';
 import TemplatesModal from '@/components/editor/modals/TemplatesModal';
 import AIGenerateModal from '@/components/editor/modals/AIGenerateModal';
+import ProjectsModal from '@/components/editor/modals/ProjectsModal';
+import SaveProjectModal from '@/components/editor/modals/SaveProjectModal';
 import { ToastProvider } from '@/components/ui/Toast';
 
 function Editor() {
@@ -25,6 +27,9 @@ function Editor() {
   const [exportOpen, setExportOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [aiOpen, setAIOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [saveProjectOpen, setSaveProjectOpen] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
 
   useEffect(() => setHydrated(true), []);
 
@@ -43,6 +48,9 @@ function Editor() {
         onOpenExport={() => setExportOpen(true)}
         onOpenTemplates={() => setTemplatesOpen(true)}
         onOpenAI={() => setAIOpen(true)}
+        onOpenProjects={() => setProjectsOpen(true)}
+        onOpenSaveProject={() => setSaveProjectOpen(true)}
+        onOpenSaveTemplate={() => setSaveTemplateOpen(true)}
       />
 
       <div className="flex-1 flex min-h-0">
@@ -57,6 +65,9 @@ function Editor() {
       <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
       <TemplatesModal open={templatesOpen} onClose={() => setTemplatesOpen(false)} />
       <AIGenerateModal open={aiOpen} onClose={() => setAIOpen(false)} />
+      <ProjectsModal open={projectsOpen} onClose={() => setProjectsOpen(false)} />
+      <SaveProjectModal open={saveProjectOpen} onClose={() => setSaveProjectOpen(false)} />
+      <SaveProjectModal open={saveTemplateOpen} onClose={() => setSaveTemplateOpen(false)} asTemplate />
     </div>
   );
 }

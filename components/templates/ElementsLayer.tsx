@@ -1,30 +1,18 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { SlideElement, Language } from '@/types';
 import { BASE_LANGUAGE } from '@/types';
 import { fontFamilyFor } from '@/lib/fonts';
 import { readableTextColor } from './EditablePillText';
+import { htmlToStored, storedToEditableHtml, renderRichHtml } from '@/lib/richText';
+import { resolveElementForLanguage } from '@/lib/localizableFields';
 import Laurel from './Laurel';
 
 export function resolveElementText(el: SlideElement, language?: Language): string {
-  if (language && language !== BASE_LANGUAGE && el.loc && el.loc[language]) return el.loc[language] as string;
+  if (language && language !== BASE_LANGUAGE && el.loc?.[language]?.text) return el.loc[language]!.text;
   return el.text || '';
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-/** Render `[keyword]` segments as filled pills (like the pill template). */
-function pillifyHtml(text: string, color: string): string {
-  const pillColor = readableTextColor(color);
-  const pill = (w: string) =>
-    `<span style="display:inline-block;background:${color};color:${pillColor};padding:0.04em 0.32em;border-radius:0.26em;line-height:1.04;">${w}</span>`;
-  return text
-    .split('\n')
-    .map((line) => (line ? escapeHtml(line).replace(/\[([^\]]+)\]/g, (_, w) => pill(w)) : '<br>'))
-    .join('<br>');
 }
 
 export interface ElementsLayerProps {
@@ -142,6 +130,172 @@ function EditingBox({
       }}
       style={{ ...style, outline: '2px solid var(--norte-primary)', borderRadius: 4, cursor: 'text' }}
     />
+  );
+}
+
+/**
+ * Rich contentEditable for `text` elements. Stores a sanitized HTML-lite string
+ * (whitelisted color / font-size(em) / font-weight spans). Selecting characters
+ * pops a floating toolbar that restyles just the highlighted run.
+ */
+function RichEditingBox({
+  value,
+  onChange,
+  onDone,
+  style,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onDone: () => void;
+  style: React.CSSProperties;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const savedRange = useRef<Range | null>(null);
+  const [bar, setBar] = useState<{ x: number; y: number } | null>(null);
+
+  // seed once
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.innerHTML = storedToEditableHtml(value);
+    el.focus();
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    r.collapse(false);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(r);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // track selection → toolbar visibility + position
+  useEffect(() => {
+    const onSel = () => {
+      const el = ref.current;
+      const sel = window.getSelection();
+      if (!el || !sel || sel.rangeCount === 0) { setBar(null); return; }
+      const range = sel.getRangeAt(0);
+      if (range.collapsed || !el.contains(range.commonAncestorContainer)) { setBar(null); return; }
+      savedRange.current = range.cloneRange();
+      const rect = range.getBoundingClientRect();
+      setBar({ x: rect.left + rect.width / 2, y: rect.top });
+    };
+    document.addEventListener('selectionchange', onSel);
+    return () => document.removeEventListener('selectionchange', onSel);
+  }, []);
+
+  const wrap = (styleStr: string) => {
+    const el = ref.current;
+    const sel = window.getSelection();
+    if (!el || !sel) return;
+    el.focus();
+    if (savedRange.current) { sel.removeAllRanges(); sel.addRange(savedRange.current); }
+    if (sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (range.collapsed) return;
+    const span = document.createElement('span');
+    span.setAttribute('style', styleStr);
+    try {
+      range.surroundContents(span);
+    } catch {
+      const frag = range.extractContents();
+      span.appendChild(frag);
+      range.insertNode(span);
+    }
+    // re-select the styled run so consecutive tweaks stack
+    sel.removeAllRanges();
+    const nr = document.createRange();
+    nr.selectNodeContents(span);
+    sel.addRange(nr);
+    savedRange.current = nr.cloneRange();
+    onChange(htmlToStored(el.innerHTML));
+    const rect = nr.getBoundingClientRect();
+    setBar({ x: rect.left + rect.width / 2, y: rect.top });
+  };
+
+  const currentWeight = () => {
+    const r = savedRange.current;
+    const node = r ? (r.startContainer.nodeType === 3 ? r.startContainer.parentElement : (r.startContainer as HTMLElement)) : null;
+    return node ? parseInt(getComputedStyle(node).fontWeight) || 400 : 400;
+  };
+  const bumpSize = (dir: 1 | -1) => {
+    const r = savedRange.current;
+    const node = r ? (r.startContainer.nodeType === 3 ? r.startContainer.parentElement : (r.startContainer as HTMLElement)) : null;
+    const baseEl = ref.current;
+    let em = 1;
+    if (node && baseEl) {
+      const cur = parseFloat(getComputedStyle(node).fontSize);
+      const base = parseFloat(getComputedStyle(baseEl).fontSize) || cur;
+      em = base ? cur / base : 1;
+    }
+    em = Math.max(0.4, Math.min(4, Math.round((em + dir * 0.15) * 100) / 100));
+    wrap(`font-size:${em}em`);
+  };
+
+  return (
+    <>
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={() => onChange(htmlToStored(ref.current?.innerHTML || ''))}
+        onBlur={() => { onChange(htmlToStored(ref.current?.innerHTML || '')); onDone(); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') (e.target as HTMLElement).blur();
+          e.stopPropagation();
+        }}
+        onPaste={(e) => {
+          e.preventDefault();
+          const t = e.clipboardData.getData('text/plain');
+          document.execCommand('insertText', false, t);
+        }}
+        style={{ ...style, outline: '2px solid var(--norte-primary)', borderRadius: 4, cursor: 'text' }}
+      />
+      {bar && createPortal(
+        <div
+          onMouseDown={(e) => e.preventDefault() /* keep the text selection alive */}
+          style={{
+            position: 'fixed',
+            left: bar.x,
+            top: bar.y - 46,
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '5px 7px',
+            background: '#1F1F22',
+            borderRadius: 9,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+          }}
+        >
+          <label title="Text color" style={{ position: 'relative', width: 22, height: 22, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', display: 'block', background: 'conic-gradient(#ef4444,#f59e0b,#eab308,#22c55e,#3b82f6,#a855f7,#ef4444)' }}>
+            <input
+              type="color"
+              onChange={(e) => wrap(`color:${e.target.value}`)}
+              style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
+            />
+          </label>
+          <BarBtn title="Smaller" onClick={() => bumpSize(-1)}>A−</BarBtn>
+          <BarBtn title="Bigger" onClick={() => bumpSize(1)}>A+</BarBtn>
+          <BarBtn title="Bold" onClick={() => wrap(`font-weight:${currentWeight() >= 600 ? '400' : '800'}`)}><b>B</b></BarBtn>
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
+
+function BarBtn({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      title={title}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      style={{ minWidth: 24, height: 22, padding: '0 5px', borderRadius: 6, background: '#37373b', color: '#fff', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -297,14 +451,17 @@ function LineChartCard({ el, sf }: { el: SlideElement; sf: number }) {
   const ticks = (el.yTicks || '0').split(',').map((s) => parseFloat(s) || 0);
   const yMax = el.yMax || Math.max(1, ...series.flatMap((s) => s.values.map((v) => v ?? 0)));
 
-  // pills row
-  const pillsH = 36 * u;
-  const footerH = el.cardCaption ? 24 * u : 0;
-  // card geometry
-  const padL = 34 * u, padR = 36 * u, padT = 22 * u, padB = 40 * u;
-  const cardH = totalH - pillsH - 12 * u - footerH;
+  // One white card wraps the pills + the chart + the footer.
+  const padX = 18 * u;            // card inner horizontal padding (pills / footer)
+  const pillsTop = 16 * u;
+  const pillsH = 32 * u;
+  const gapAfterPills = 8 * u;
+  const footerH = el.cardCaption ? 30 * u : 14 * u;
+  const chartH = Math.max(60 * u, totalH - pillsTop - pillsH - gapAfterPills - footerH);
+  // svg-internal plot padding
+  const padL = 34 * u, padR = 28 * u, padT = 8 * u, padB = 30 * u;
   const plotW = w - padL - padR;
-  const plotH = cardH - padT - padB;
+  const plotH = chartH - padT - padB;
   const xFor = (i: number) => padL + (n <= 1 ? 0 : (i / (n - 1)) * plotW);
   const yFor = (v: number) => padT + plotH * (1 - v / yMax);
   const baseY = yFor(0);
@@ -326,96 +483,114 @@ function LineChartCard({ el, sf }: { el: SlideElement; sf: number }) {
   }, -Infinity);
 
   return (
-    <div style={{ width: w, fontFamily: fontFamilyFor('Sora') }}>
-      {/* habit toggle pills */}
-      <div style={{ display: 'flex', gap: 8 * u, height: pillsH, marginBottom: 12 * u, flexWrap: 'nowrap', overflow: 'hidden' }}>
+    <div style={{ width: w, height: totalH, background: el.bg || '#FFFFFF', borderRadius: (el.radius ?? 22) * u, border: `${1 * u}px solid rgba(0,0,0,0.06)`, boxShadow: '0 6px 18px rgba(0,0,0,0.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: fontFamilyFor('Sora'), boxSizing: 'border-box' }}>
+      {/* habit toggle pills — inside the white card */}
+      <div style={{ display: 'flex', gap: 8 * u, height: pillsH, padding: `${pillsTop}px ${padX}px 0`, marginBottom: gapAfterPills, flexWrap: 'nowrap', overflow: 'hidden', boxSizing: 'content-box', flexShrink: 0 }}>
         {series.map((s, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', padding: `0 ${12 * u}px`, borderRadius: pillsH / 2, background: hexToRgba(s.color, 0.26), color: darken(s.color, 0.34), fontSize: 12 * u, fontWeight: 600, whiteSpace: 'nowrap' }}>{s.label}</div>
         ))}
       </div>
-      {/* card */}
-      <div style={{ width: w, height: cardH, background: el.bg || '#F4F2ED', borderRadius: (el.radius ?? 22) * u, position: 'relative', overflow: 'hidden', border: `${1 * u}px solid rgba(0,0,0,0.06)`, boxShadow: '0 6px 18px rgba(0,0,0,0.05)' }}>
-        <svg width={w} height={cardH} style={{ display: 'block' }}>
-          {/* dotted gridlines + y labels */}
-          {ticks.map((t, i) => (
-            <g key={i}>
-              <line x1={padL} y1={yFor(t)} x2={w - padR} y2={yFor(t)} stroke="#c4c0b8" strokeWidth={1.5 * u} strokeLinecap="round" strokeDasharray={`${0.5 * u} ${7 * u}`} />
-              <text x={padL - 12 * u} y={yFor(t) + 4 * u} textAnchor="end" fontFamily={MONO} fontSize={12 * u} fill="#a8a49c">{t}</text>
-            </g>
+      {/* chart */}
+      <svg width={w} height={chartH} style={{ display: 'block', flexShrink: 0 }}>
+        {/* per-series vertical fill gradients — strong at the curve, still solid at the baseline */}
+        <defs>
+          {series.map((s, si) => (
+            <linearGradient key={si} id={`lc-${el.id}-${si}`} x1="0" y1={padT} x2="0" y2={baseY} gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor={s.color} stopOpacity={0.5} />
+              <stop offset="100%" stopColor={s.color} stopOpacity={0.22} />
+            </linearGradient>
           ))}
-          {/* series areas + lines */}
-          {series.map((s, si) => {
-            const pts = s.values.map((v, i) => (v == null ? null : { x: xFor(i), y: yFor(v) })).filter(Boolean) as { x: number; y: number }[];
-            if (pts.length === 0) return null;
-            const line = smoothPath(pts);
-            const area = `${line} L ${pts[pts.length - 1].x} ${baseY} L ${pts[0].x} ${baseY} Z`;
-            return (
-              <g key={si}>
-                <path d={area} fill={hexToRgba(s.color, 0.13)} />
-                <path d={line} fill="none" stroke={s.color} strokeWidth={3.5 * u} strokeLinecap="round" strokeLinejoin="round" />
-              </g>
-            );
-          })}
-          {/* end dots + value labels (drawn after lines so they sit on top) */}
-          {endPoints.map((e, si) => (
+        </defs>
+        {/* dotted gridlines + y labels */}
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={padL} y1={yFor(t)} x2={w - padR} y2={yFor(t)} stroke="#c4c0b8" strokeWidth={1.5 * u} strokeLinecap="round" strokeDasharray={`${0.5 * u} ${7 * u}`} />
+            <text x={padL - 12 * u} y={yFor(t) + 4 * u} textAnchor="end" fontFamily={MONO} fontSize={12 * u} fill="#a8a49c">{t}</text>
+          </g>
+        ))}
+        {/* series areas (filled) + lines */}
+        {series.map((s, si) => {
+          const pts = s.values.map((v, i) => (v == null ? null : { x: xFor(i), y: yFor(v) })).filter(Boolean) as { x: number; y: number }[];
+          if (pts.length === 0) return null;
+          const line = smoothPath(pts);
+          const area = `${line} L ${pts[pts.length - 1].x} ${baseY} L ${pts[0].x} ${baseY} Z`;
+          return (
             <g key={si}>
-              <circle cx={e.x} cy={e.y} r={5.5 * u} fill={e.color} stroke={el.bg || '#F4F2ED'} strokeWidth={2 * u} />
-              {e.val != null && (
-                <text x={e.x - 2 * u} y={e.labelY} textAnchor="end" fontFamily={fontFamilyFor('Sora')} fontSize={15 * u} fontWeight={800} fill="#1A1A1A" letterSpacing="-0.02em">{e.val}</text>
-              )}
+              <path d={area} fill={`url(#lc-${el.id}-${si})`} />
+              <path d={line} fill="none" stroke={s.color} strokeWidth={3.5 * u} strokeLinecap="round" strokeLinejoin="round" />
             </g>
-          ))}
-          {/* x labels */}
-          {labels.map((lb, i) => {
-            const on = i === n - 1;
-            return <text key={i} x={xFor(i)} y={cardH - padB + 26 * u} textAnchor="middle" fontFamily={MONO} fontSize={12.5 * u} fontWeight={on ? 700 : 400} fill={on ? '#1A1A1A' : '#a8a49c'}>{lb}</text>;
-          })}
-        </svg>
-      </div>
-      {/* footer (below the card) */}
+          );
+        })}
+        {/* end dots + value labels (per-series colour, drawn on top) */}
+        {endPoints.map((e, si) => (
+          <g key={si}>
+            <circle cx={e.x} cy={e.y} r={5.5 * u} fill={e.color} stroke={el.bg || '#FFFFFF'} strokeWidth={2 * u} />
+            {e.val != null && (
+              <text x={e.x - 2 * u} y={e.labelY} textAnchor="end" fontFamily={fontFamilyFor('Sora')} fontSize={15 * u} fontWeight={800} fill={darken(e.color, 0.28)} letterSpacing="-0.02em">{e.val}</text>
+            )}
+          </g>
+        ))}
+        {/* x labels */}
+        {labels.map((lb, i) => {
+          const on = i === n - 1;
+          return <text key={i} x={xFor(i)} y={baseY + 22 * u} textAnchor="middle" fontFamily={MONO} fontSize={12.5 * u} fontWeight={on ? 700 : 400} fill={on ? '#1A1A1A' : '#a8a49c'}>{lb}</text>;
+        })}
+      </svg>
+      {/* footer — inside the card */}
       {el.cardCaption && (
-        <div style={{ fontFamily: MONO, fontSize: 12 * u, color: '#8a877f', marginTop: 10 * u }}>{el.cardCaption}</div>
+        <div style={{ fontFamily: MONO, fontSize: 12 * u, color: '#8a877f', padding: `0 ${padX}px`, display: 'flex', alignItems: 'center', flex: 1 }}>{el.cardCaption}</div>
       )}
     </div>
   );
 }
 
 /** Two-stat streak card: current streak + record, divider, "Cumprido hoje" footer. */
-function StreakCard({ el, sf }: { el: SlideElement; sf: number }) {
+function StreakCard({ el, sf, onToggleCheck }: { el: SlideElement; sf: number; onToggleCheck?: (id: string) => void }) {
   const u = sf * ((el.w || 320) / 320); // width-proportional unit
   const w = (el.w || 320) * sf;
-  const pad = 26 * u;
+  const pad = 28 * u;
   const unit = el.unit ?? 'd';
+  const fg = el.color || '#F4F2ED';
   const muted = '#8d8a84';
-  const labelStyle: React.CSSProperties = { fontFamily: MONO, fontSize: 11 * u, letterSpacing: '0.12em', textTransform: 'uppercase', color: muted, display: 'flex', alignItems: 'center', gap: 5 * u };
+  const checked = !!el.check;
+  const labelStyle: React.CSSProperties = { fontFamily: MONO, fontSize: 11 * u, letterSpacing: '0.16em', textTransform: 'uppercase', color: muted, display: 'flex', alignItems: 'center', gap: 6 * u };
   const Stat = ({ label, value, fire, color }: { label: string; value: string; fire?: boolean; color: string }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 * u }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 * u }}>
       <div style={labelStyle}>
-        {fire && <span style={{ fontSize: 13 * u }}>🔥</span>}
+        {fire && el.showFire !== false && <span style={{ fontSize: 12 * u }}>🔥</span>}
         {label}
       </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 * u }}>
-        <span style={{ fontFamily: fontFamilyFor('Sora'), fontSize: 64 * u, fontWeight: 800, lineHeight: 0.8, color, letterSpacing: '-0.03em' }}>{value}</span>
-        <span style={{ fontFamily: fontFamilyFor('Sora'), fontSize: 22 * u, fontWeight: 800, color: muted, paddingBottom: 4 * u }}>{unit}</span>
-        {fire && el.showFire !== false && <span style={{ fontSize: 30 * u, paddingBottom: 2 * u }}>🔥</span>}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5 * u }}>
+        <span style={{ fontFamily: fontFamilyFor('Sora'), fontSize: 62 * u, fontWeight: 800, lineHeight: 0.8, color, letterSpacing: '-0.03em' }}>{value}</span>
+        <span style={{ fontFamily: fontFamilyFor('Sora'), fontSize: 22 * u, fontWeight: 800, color: muted, paddingBottom: 5 * u }}>{unit}</span>
+        {fire && el.showFire !== false && <span style={{ fontSize: 27 * u, paddingBottom: 2 * u, marginLeft: 3 * u }}>🔥</span>}
       </div>
     </div>
   );
+  const label = checked ? (el.cardCaption || 'Kept today') : (el.text || 'Check in today');
   return (
     <div style={{ width: w, background: el.bg || '#1A1A1A', borderRadius: (el.radius ?? 28) * u, padding: pad, fontFamily: fontFamilyFor('Sora'), display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', gap: 36 * u }}>
-        <Stat label={el.cardTitle || ''} value={el.cardValue || ''} fire color="#F4F2ED" />
+      <div style={{ display: 'flex', gap: 44 * u }}>
+        <Stat label={el.cardTitle || 'Current streak'} value={el.cardValue || ''} fire color={fg} />
         {(el.cardTitle2 || el.cardValue2) && <Stat label={el.cardTitle2 || ''} value={el.cardValue2 || ''} color={muted} />}
       </div>
-      {el.cardCaption && (
-        <>
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', margin: `${20 * u}px 0` }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 * u }}>
-            <svg width={20 * u} height={20 * u} viewBox="0 0 24 24" fill="none" stroke="#F4F2ED" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-            <span style={{ fontSize: 17 * u, fontWeight: 600, color: '#F4F2ED' }}>{el.cardCaption}</span>
-          </div>
-        </>
-      )}
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', margin: `${22 * u}px 0 ${18 * u}px` }} />
+      {/* flag / unflag toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 13 * u }}>
+        <div
+          onPointerDown={(e) => { if (onToggleCheck) e.stopPropagation(); }}
+          onClick={(e) => { if (onToggleCheck) { e.stopPropagation(); onToggleCheck(el.id); } }}
+          style={{ cursor: onToggleCheck ? 'pointer' : 'default', width: 26 * u, height: 26 * u, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          title={onToggleCheck ? 'Click to flag / unflag' : undefined}
+        >
+          {checked ? (
+            <svg width={23 * u} height={23 * u} viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+          ) : (
+            <div style={{ width: 24 * u, height: 24 * u, borderRadius: '50%', border: `${2 * u}px solid rgba(244,242,232,0.5)`, boxSizing: 'border-box' }} />
+          )}
+        </div>
+        <span style={{ fontSize: 17 * u, fontWeight: 600, color: fg }}>{label}</span>
+      </div>
     </div>
   );
 }
@@ -531,7 +706,9 @@ export default function ElementsLayer({ elements, sf, language, onSelect, onText
 
   return (
     <>
-      {elements.map((el) => {
+      {elements.map((rawEl) => {
+        // Replace every text field with its translation for the active language.
+        const el = resolveElementForLanguage(rawEl, language);
         const editing = editingId === el.id;
         const common: React.CSSProperties = {
           position: 'absolute',
@@ -859,7 +1036,7 @@ export default function ElementsLayer({ elements, sf, language, onSelect, onText
           } else if (el.kind === 'linechart') {
             content = <LineChartCard el={el} sf={sf} />;
           } else if (el.kind === 'streak') {
-            content = <StreakCard el={el} sf={sf} />;
+            content = <StreakCard el={el} sf={sf} onToggleCheck={onToggleCheck} />;
           } else if (el.kind === 'notification') {
             content = <NotificationCard el={el} sf={sf} editing={editing} onTextChange={onTextChange} onEditEnd={onEditEnd} />;
           } else if (el.kind === 'widget') {
@@ -916,12 +1093,18 @@ export default function ElementsLayer({ elements, sf, language, onSelect, onText
           letterSpacing: '-0.01em',
         };
         const shown = resolveElementText(el, language);
+        const baseColor = el.color || '#111111';
+        const isBase = !language || language === BASE_LANGUAGE;
         return (
           <div key={el.id} style={common} {...handlers}>
             {editing ? (
-              <EditingBox value={shown} onChange={(v) => onTextChange?.(el.id, v)} onDone={() => onEditEnd?.()} style={textStyle} />
+              isBase ? (
+                <RichEditingBox value={shown} onChange={(v) => onTextChange?.(el.id, v)} onDone={() => onEditEnd?.()} style={textStyle} />
+              ) : (
+                <EditingBox value={shown} onChange={(v) => onTextChange?.(el.id, v)} onDone={() => onEditEnd?.()} style={textStyle} />
+              )
             ) : (
-              <div style={textStyle} dangerouslySetInnerHTML={{ __html: pillifyHtml(shown, el.color || '#111111') }} />
+              <div style={textStyle} dangerouslySetInnerHTML={{ __html: renderRichHtml(shown, baseColor, readableTextColor(baseColor)) }} />
             )}
           </div>
         );

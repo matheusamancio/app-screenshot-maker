@@ -100,13 +100,13 @@ function resolveCode(raw: string): Language | null {
   return (ALL_LANGUAGE_CODES.find((c) => c.toLowerCase() === lower) as Language) || null;
 }
 
-function parseFieldId(fieldId: string): { slideId: string; field: 'title' | 'subtitle' | 'element'; elementId?: string } | null {
+function parseFieldId(fieldId: string): { slideId: string; field: 'title' | 'subtitle' | 'element'; elementId?: string; elementField?: string } | null {
   const parts = fieldId.split(':');
   if (parts.length < 2) return null;
   const slideId = parts[0];
   if (parts[1] === 'title') return { slideId, field: 'title' };
   if (parts[1] === 'subtitle') return { slideId, field: 'subtitle' };
-  if (parts[1] === 'el' && parts[2]) return { slideId, field: 'element', elementId: parts[2] };
+  if (parts[1] === 'el' && parts[2]) return { slideId, field: 'element', elementId: parts[2], elementField: parts.slice(3).join(':') || 'text' };
   return null;
 }
 
@@ -146,7 +146,7 @@ export function csvToCells(rows: string[][]): CsvImportResult {
       const v = row[ci];
       if (v == null || v.trim() === '') return;
       localesSeen.add(col.lang);
-      cells.push({ slideId: parsed.slideId, lang: col.lang, field: parsed.field, elementId: parsed.elementId, value: v });
+      cells.push({ slideId: parsed.slideId, lang: col.lang, field: parsed.field, elementId: parsed.elementId, elementField: parsed.elementField, value: v });
     });
   }
 

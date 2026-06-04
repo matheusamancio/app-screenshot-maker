@@ -213,7 +213,23 @@ export default function TemplatesModal({ open, onClose }: Props) {
   const savedSlides = useProjectStore((s) => s.savedSlides || []);
   const applySavedTemplate = useProjectStore((s) => s.applySavedTemplate);
   const clearSavedTemplate = useProjectStore((s) => s.clearSavedTemplate);
+  const projects = useProjectStore((s) => s.projects || []);
+  const currentProjectId = useProjectStore((s) => s.currentProjectId);
+  const saveProject = useProjectStore((s) => s.saveProject);
+  const openProject = useProjectStore((s) => s.openProject);
+  const deleteProject = useProjectStore((s) => s.deleteProject);
   const { toast } = useToast();
+  const myTemplates = projects.filter((p) => p.isTemplate).sort((a, b) => b.updatedAt - a.updatedAt);
+
+  const useProjectTemplate = (id: string, name: string) => {
+    const hasContent = slides.some((s) => s.screenshot || s.title.text !== 'Build something\nbeautiful.');
+    // Don't lose work: auto-save a named project, or confirm before replacing an unsaved board.
+    if (currentProjectId) saveProject();
+    else if (hasContent && !window.confirm(`Start a new project from “${name}”? Your current unsaved board will be replaced.`)) return;
+    openProject(id);
+    toast(`Started a new project from “${name}”`, 'success');
+    onClose();
+  };
   const [previewKit, setPreviewKit] = useState<StarterKit | null>(null);
   const [keepScreens, setKeepScreens] = useState(true);
 
@@ -302,6 +318,35 @@ export default function TemplatesModal({ open, onClose }: Props) {
                   <SavedSlideCard key={s.id} slide={s} index={i} />
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {myTemplates.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="font-sora font-semibold text-primary text-sm">Your saved templates</div>
+              <span className="text-[9px] font-semibold uppercase tracking-wider bg-norte-primary-light text-norte-primary px-1.5 py-0.5 rounded">{myTemplates.length}</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {myTemplates.map((t) => (
+                <div key={t.id} className="group rounded-lg border border-border-default bg-surface overflow-hidden flex flex-col">
+                  <div className="relative h-24 flex items-center justify-center px-3 text-center" style={{ background: t.deck.slides[0]?.background?.solidColor || '#EDEBE5' }}>
+                    <div className="text-[11px] font-sora font-bold text-primary leading-tight line-clamp-2">{(t.deck.slides[0]?.title?.text || t.name).replace(/\[|\]/g, '')}</div>
+                    <span className="absolute top-1.5 left-1.5 text-[8px] uppercase tracking-wider font-semibold bg-norte-primary text-white px-1 py-0.5 rounded">Template</span>
+                  </div>
+                  <div className="p-2 flex flex-col gap-1.5">
+                    <div className="text-xs font-semibold text-primary truncate" title={t.name}>{t.name}</div>
+                    <div className="text-[10px] text-text-muted">{t.deck.slides.length} screen{t.deck.slides.length !== 1 ? 's' : ''}</div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => useProjectTemplate(t.id, t.name)} className="flex-1 h-7 rounded-md bg-norte-primary text-white text-xs font-semibold hover:bg-norte-primary-hover">Use template</button>
+                      <button title="Delete template" onClick={() => { if (window.confirm(`Delete template “${t.name}”?`)) { deleteProject(t.id); toast('Template deleted', 'success'); } }} className="w-7 h-7 rounded-md flex items-center justify-center bg-muted border border-border-default text-text-muted hover:text-[#DC2626]">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

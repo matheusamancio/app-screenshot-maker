@@ -199,7 +199,7 @@ function upgradeNorteScreen(els: RawEl[], i: number): RawEl[] {
     // Two-stat streak card → Streak component
     drop((e) => e.kind === 'shape' && (near(e, 195, 394, 8) || near(e, 282, 462, 8)));
     drop((e) => (e.kind === 'text' || e.kind === 'emoji') && (near(e, 153, 349) || near(e, 153, 390) || near(e, 150, 400) || near(e, 176, 396) || near(e, 240, 339) || near(e, 240, 369) || near(e, 267, 379) || near(e, 195, 444)));
-    add({ kind: 'streak', x: 195, y: 394, w: 212, bg: '#1A1A1A', radius: 16, cardTitle: 'Sequência atual', cardValue: '9', cardTitle2: 'Recorde', cardValue2: '16', cardCaption: 'Cumprido hoje', unit: 'd', showFire: false, accent: '#E8923C' });
+    add({ kind: 'streak', x: 195, y: 394, w: 212, bg: '#1A1A1A', radius: 16, cardTitle: 'Sequência atual', cardValue: '9', cardTitle2: 'Recorde', cardValue2: '16', cardCaption: 'Cumprido hoje', text: 'Fazer check-in', unit: 'd', showFire: false, check: true, accent: '#E8923C' });
   } else if (i === 4) {
     // Privacy lock circle → Lock badge component
     drop((e) => e.kind === 'shape' && near(e, 195, 316, 8) && (e.w || 0) < 70);

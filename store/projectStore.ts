@@ -17,11 +17,13 @@ import type {
   ElementTransform,
   TransformableElement,
   SlideElement,
+  ProjectDeck,
 } from '@/types';
 import { IDENTITY_TRANSFORM, BASE_LANGUAGE } from '@/types';
 import { ALL_LANGUAGE_CODES, isBaseLanguage } from '@/lib/presets';
 import { uid } from '@/lib/utils';
 import { getKit } from '@/lib/starterKits';
+import { setByPath } from '@/lib/localizableFields';
 
 const defaultBackground: BackgroundConfig = {
   type: 'linear-gradient',
@@ -86,6 +88,25 @@ function makeSlide(): Slide {
     localizations: {},
     linkedToGlobals: true,
   };
+}
+
+/** Deep-clone the editable deck out of the live state (everything to restore it later). */
+function snapshotDeck(state: ProjectState): ProjectDeck {
+  return JSON.parse(
+    JSON.stringify({
+      name: state.name,
+      platform: state.platform,
+      appName: state.appName,
+      defaultLanguage: state.defaultLanguage,
+      slides: state.slides,
+      activeSlideId: state.activeSlideId,
+      previewDeviceId: state.previewDeviceId,
+      activeLanguage: state.activeLanguage,
+      enabledLanguages: state.enabledLanguages,
+      globals: state.globals,
+      activeKitId: state.activeKitId,
+    }),
+  );
 }
 
 const initialSlide = makeSlide();
@@ -262,7 +283,7 @@ export const useProjectStore = create<ProjectState>()(
           }),
         })),
 
-      setElementLocalizedText: (slideId, elementId, lang, value) =>
+      setElementLocalizedText: (slideId, elementId, lang, value, field = 'text') =>
         set((state) => ({
           slides: state.slides.map((s) => {
             if (s.id !== slideId) return s;
@@ -270,8 +291,8 @@ export const useProjectStore = create<ProjectState>()(
               ...s,
               elements: (s.elements || []).map((el) => {
                 if (el.id !== elementId) return el;
-                if (isBaseLanguage(lang)) return { ...el, text: value };
-                return { ...el, loc: { ...(el.loc || {}), [lang]: value } };
+                if (isBaseLanguage(lang)) return setByPath(el, field, value);
+                return { ...el, loc: { ...(el.loc || {}), [lang]: { ...(el.loc?.[lang] || {}), [field]: value } } };
               }),
             };
           }),
@@ -296,10 +317,11 @@ export const useProjectStore = create<ProjectState>()(
               let elements = s.elements;
               for (const u of updates) {
                 if (u.field === 'element' && u.elementId) {
+                  const path = u.elementField || 'text';
                   elements = (elements || []).map((el) => {
                     if (el.id !== u.elementId) return el;
-                    if (isBaseLanguage(u.lang)) return { ...el, text: u.value };
-                    return { ...el, loc: { ...(el.loc || {}), [u.lang]: u.value } };
+                    if (isBaseLanguage(u.lang)) return setByPath(el, path, u.value);
+                    return { ...el, loc: { ...(el.loc || {}), [u.lang]: { ...(el.loc?.[u.lang] || {}), [path]: u.value } } };
                   });
                 } else if (isBaseLanguage(u.lang)) {
                   if (u.field === 'title') title = { ...title, text: u.value };
@@ -479,6 +501,104 @@ export const useProjectStore = create<ProjectState>()(
         })),
       clipboardElement: null,
 
+      projects: [],
+      currentProjectId: null,
+      saveProject: (name) => {
+        let id = '';
+        set((state) => {
+          const deck = snapshotDeck(state);
+          if (name) deck.name = name;
+          const now = Date.now();
+          const projects = [...(state.projects || [])];
+          const idx = projects.findIndex((p) => p.id === state.currentProjectId && !p.isTemplate);
+          if (idx >= 0) {
+            id = projects[idx].id;
+            projects[idx] = { ...projects[idx], name: deck.name, deck, updatedAt: now };
+          } else {
+            id = uid();
+            projects.push({ id, name: deck.name, createdAt: now, updatedAt: now, deck });
+          }
+          return { projects, currentProjectId: id, name: deck.name };
+        });
+        return id;
+      },
+      saveProjectAsTemplate: (name) =>
+        set((state) => {
+          const deck = snapshotDeck(state);
+          const tname = name || `${deck.name} template`;
+          deck.name = tname;
+          const now = Date.now();
+          return { projects: [...(state.projects || []), { id: uid(), name: tname, createdAt: now, updatedAt: now, isTemplate: true, deck }] };
+        }),
+      newProject: (name) =>
+        set(() => {
+          const slide = makeSlide();
+          return {
+            name: name || 'Untitled project',
+            slides: [slide],
+            activeSlideId: slide.id,
+            selectedElementId: null,
+            selectedIds: [],
+            currentProjectId: null,
+            activeKitId: null,
+            _past: [],
+            _future: [],
+          };
+        }),
+      openProject: (id) =>
+        set((state) => {
+          const p = (state.projects || []).find((x) => x.id === id);
+          if (!p) return {};
+          const deck: ProjectDeck = JSON.parse(JSON.stringify(p.deck));
+          // Opening a template spawns a fresh unsaved working copy; opening a project edits it in place.
+          const name = p.isTemplate ? deck.name.replace(/\s*template$/i, '').trim() || deck.name : deck.name;
+          return {
+            ...deck,
+            name,
+            selectedElementId: null,
+            selectedIds: [],
+            currentProjectId: p.isTemplate ? null : p.id,
+            _past: [],
+            _future: [],
+          };
+        }),
+      deleteProject: (id) =>
+        set((state) => ({
+          projects: (state.projects || []).filter((p) => p.id !== id),
+          currentProjectId: state.currentProjectId === id ? null : state.currentProjectId,
+        })),
+      renameProject: (id, name) =>
+        set((state) => ({
+          projects: (state.projects || []).map((p) => (p.id === id ? { ...p, name, deck: { ...p.deck, name }, updatedAt: Date.now() } : p)),
+          name: state.currentProjectId === id ? name : state.name,
+        })),
+      duplicateProject: (id) =>
+        set((state) => {
+          const p = (state.projects || []).find((x) => x.id === id);
+          if (!p) return {};
+          const now = Date.now();
+          const copy = { ...JSON.parse(JSON.stringify(p)), id: uid(), name: `${p.name} copy`, createdAt: now, updatedAt: now };
+          return { projects: [...(state.projects || []), copy] };
+        }),
+      templatizeProject: (id) =>
+        set((state) => {
+          const p = (state.projects || []).find((x) => x.id === id);
+          if (!p) return {};
+          const now = Date.now();
+          const tname = /template$/i.test(p.name) ? p.name : `${p.name} template`;
+          const deck: ProjectDeck = JSON.parse(JSON.stringify({ ...p.deck, name: tname }));
+          return { projects: [...(state.projects || []), { id: uid(), name: tname, createdAt: now, updatedAt: now, isTemplate: true, deck }] };
+        }),
+
+      recentColors: [],
+      addRecentColor: (color) =>
+        set((state) => {
+          if (!/^#[0-9a-fA-F]{3,8}$/.test(color)) return {};
+          const v = color.toUpperCase();
+          const next = [v, ...(state.recentColors || []).filter((c) => c.toUpperCase() !== v)].slice(0, 18);
+          return { recentColors: next };
+        }),
+
       addElement: (slideId, element, opts) =>
         set((state) => ({
           slides: state.slides.map((s) =>
@@ -619,31 +739,40 @@ export const useProjectStore = create<ProjectState>()(
     }),
     {
       name: 'screenforge-project-v1',
-      version: 2,
+      version: 3,
       partialize: (state) =>
         Object.fromEntries(Object.entries(state).filter(([k]) => k !== '_past' && k !== '_future' && k !== 'isDraggingElement')) as ProjectState,
       migrate: (persisted: any, version: number) => {
-        if (!persisted || version >= 2) return persisted;
-        // v1 used generic codes (en/es/fr/zh). Map them to the new App Store locales.
-        const map: Record<string, Language> = {
-          en: 'en-US',
-          es: 'es-MX',
-          fr: 'fr-FR',
-          zh: 'zh-Hant',
-        };
-        const remap = (c: string): Language => (map[c] || c) as Language;
-
-        persisted.activeLanguage = remap(persisted.activeLanguage || 'en');
-        persisted.defaultLanguage = remap(persisted.defaultLanguage || 'en');
-        // The localization feature is about shipping every store locale — enable them all.
-        persisted.enabledLanguages = [...ALL_LANGUAGE_CODES];
-        persisted.slides = (persisted.slides || []).map((s: any) => {
-          const localizations: Record<string, LocalizationEntry> = {};
-          Object.entries(s.localizations || {}).forEach(([k, v]) => {
-            localizations[remap(k)] = v as LocalizationEntry;
+        if (!persisted) return persisted;
+        if (version < 2) {
+          // v1 used generic codes (en/es/fr/zh). Map them to the new App Store locales.
+          const map: Record<string, Language> = { en: 'en-US', es: 'es-MX', fr: 'fr-FR', zh: 'zh-Hant' };
+          const remap = (c: string): Language => (map[c] || c) as Language;
+          persisted.activeLanguage = remap(persisted.activeLanguage || 'en');
+          persisted.defaultLanguage = remap(persisted.defaultLanguage || 'en');
+          persisted.enabledLanguages = [...ALL_LANGUAGE_CODES];
+          persisted.slides = (persisted.slides || []).map((s: any) => {
+            const localizations: Record<string, LocalizationEntry> = {};
+            Object.entries(s.localizations || {}).forEach(([k, v]) => { localizations[remap(k)] = v as LocalizationEntry; });
+            return { ...s, localizations };
           });
-          return { ...s, localizations };
-        });
+        }
+        if (version < 3) {
+          // el.loc went from `Record<lang,string>` → `Record<lang, Record<field,string>>` (per-field).
+          const fixSlides = (slides: any[]) => (slides || []).map((s) => ({
+            ...s,
+            elements: (s.elements || []).map((el: any) => {
+              if (!el.loc) return el;
+              const loc: Record<string, Record<string, string>> = {};
+              Object.entries(el.loc).forEach(([lang, v]) => { loc[lang] = typeof v === 'string' ? { text: v } : (v as Record<string, string>); });
+              return { ...el, loc };
+            }),
+          }));
+          persisted.slides = fixSlides(persisted.slides);
+          if (Array.isArray(persisted.projects)) {
+            persisted.projects = persisted.projects.map((p: any) => (p?.deck?.slides ? { ...p, deck: { ...p.deck, slides: fixSlides(p.deck.slides) } } : p));
+          }
+        }
         return persisted;
       },
     },

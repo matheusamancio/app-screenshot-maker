@@ -616,12 +616,12 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
       {sel.kind === 'streak' && (
         <>
           <div className="grid grid-cols-2 gap-2">
-            <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="Sequência atual" />
-            <TextField value={sel.cardValue || ''} onChange={(v) => update({ cardValue: v })} placeholder="15" />
+            <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="Current streak" />
+            <TextField value={sel.cardValue || ''} onChange={(v) => update({ cardValue: v })} placeholder="10" />
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <TextField value={sel.cardTitle2 || ''} onChange={(v) => update({ cardTitle2: v })} placeholder="Recorde" />
-            <TextField value={sel.cardValue2 || ''} onChange={(v) => update({ cardValue2: v })} placeholder="24" />
+            <TextField value={sel.cardTitle2 || ''} onChange={(v) => update({ cardTitle2: v })} placeholder="Best ever" />
+            <TextField value={sel.cardValue2 || ''} onChange={(v) => update({ cardValue2: v })} placeholder="19" />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <TextField value={sel.unit || ''} onChange={(v) => update({ unit: v })} placeholder="Unit (d)" />
@@ -630,7 +630,22 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
               <Toggle on={sel.showFire !== false} onToggle={() => update({ showFire: sel.showFire === false })} />
             </label>
           </div>
-          <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Cumprido hoje" />
+          {/* check-in / flag */}
+          <div className="border-t border-border-default pt-3 space-y-2">
+            <label className="flex items-center justify-between gap-2 px-1">
+              <span className="section-label">Kept today (flag)</span>
+              <Toggle on={!!sel.check} onToggle={() => update({ check: !sel.check })} />
+            </label>
+            <div>
+              <div className="section-label mb-1.5">Kept label</div>
+              <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Kept today" />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Check-in label</div>
+              <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="Check in today" />
+            </div>
+            <p className="text-[11px] text-text-muted">Click the circle/check on the card to flag or unflag the day.</p>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <div className="section-label mb-1.5">Card background</div>

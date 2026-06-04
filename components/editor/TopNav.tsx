@@ -12,9 +12,12 @@ interface Props {
   onOpenExport: () => void;
   onOpenTemplates: () => void;
   onOpenAI: () => void;
+  onOpenProjects: () => void;
+  onOpenSaveProject: () => void;
+  onOpenSaveTemplate: () => void;
 }
 
-export default function TopNav({ onOpenGlobals, onOpenSetup, onOpenLocalize, onOpenExport, onOpenTemplates, onOpenAI }: Props) {
+export default function TopNav({ onOpenGlobals, onOpenSetup, onOpenLocalize, onOpenExport, onOpenTemplates, onOpenAI, onOpenProjects, onOpenSaveProject, onOpenSaveTemplate }: Props) {
   const previewDeviceId = useProjectStore((s) => s.previewDeviceId);
   const setPreviewDevice = useProjectStore((s) => s.setPreviewDevice);
   const projectName = useProjectStore((s) => s.name);
@@ -58,6 +61,18 @@ export default function TopNav({ onOpenGlobals, onOpenSetup, onOpenLocalize, onO
           </svg>
           Templates
         </button>
+        <button
+          onClick={onOpenProjects}
+          className="h-8 px-3 rounded-md text-sm font-sora font-semibold text-secondary hover:text-primary hover:bg-overlay transition-all flex items-center gap-1.5"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="8" height="8" rx="1.5" />
+            <rect x="13" y="3" width="8" height="8" rx="1.5" />
+            <rect x="3" y="13" width="8" height="8" rx="1.5" />
+            <rect x="13" y="13" width="8" height="8" rx="1.5" />
+          </svg>
+          Projects
+        </button>
         <NavButton onClick={onOpenGlobals} label="Globals" />
         <NavButton onClick={onOpenSetup} label="Setup" />
         <NavButton onClick={onOpenLocalize} label="Localize" />
@@ -65,9 +80,31 @@ export default function TopNav({ onOpenGlobals, onOpenSetup, onOpenLocalize, onO
 
       <div className="ml-3 text-sm text-text-muted truncate max-w-[200px]">{projectName}</div>
 
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-2">
+        <button
+          onClick={onOpenSaveProject}
+          title="Save this board to your projects"
+          className="h-9 px-3 rounded-md bg-muted border border-border-default text-secondary font-sora font-semibold text-sm flex items-center gap-1.5 hover:bg-overlay transition-all"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          </svg>
+          Save project
+        </button>
+        <button
+          onClick={onOpenSaveTemplate}
+          title="Save this board as a reusable template"
+          className="h-9 px-3 rounded-md bg-muted border border-border-default text-secondary font-sora font-semibold text-sm hover:bg-overlay transition-all"
+        >
+          Save as template
+        </button>
+
+        <div className="h-6 w-px bg-border-default mx-1" />
+
         <div className="text-[11px] text-text-muted font-medium uppercase tracking-wide">Preview</div>
-        <div className="w-72">
+        <div className="w-56">
           <Dropdown value={previewDeviceId} onChange={setPreviewDevice} options={deviceOptions} />
         </div>
         <button

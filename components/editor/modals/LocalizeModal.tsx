@@ -41,7 +41,7 @@ export default function LocalizeModal({ open, onClose }: Props) {
   const previewSlide = slides.find((s) => s.id === previewSlideId) || slides[0];
 
   const setCell = (f: LocField, lang: Language, value: string) => {
-    if (f.kind === 'element' && f.elementId) setElementLocalizedText(f.slideId, f.elementId, lang, value);
+    if (f.kind === 'element' && f.elementId) setElementLocalizedText(f.slideId, f.elementId, lang, value, f.elementField || 'text');
     else setLocalizedText(f.slideId, lang, f.kind as 'title' | 'subtitle', value);
   };
 
@@ -56,7 +56,7 @@ export default function LocalizeModal({ open, onClose }: Props) {
       cols.forEach((val, c) => {
         const lang = localeCodes[colIndex + c];
         if (!lang) return;
-        cells.push({ slideId: f.slideId, lang, field: f.kind, elementId: f.elementId, value: val });
+        cells.push({ slideId: f.slideId, lang, field: f.kind, elementId: f.elementId, elementField: f.elementField, value: val });
       });
     });
     if (cells.length) {
