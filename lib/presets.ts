@@ -23,8 +23,10 @@ export interface LocaleInfo {
   code: Language;
   /** Short label shown in chips/columns, e.g. "EN-US". */
   label: string;
-  /** Human language + region, e.g. "English (US)". */
+  /** Human language + region (often native script), e.g. "日本語 (Japanese)". */
   name: string;
+  /** Clean English display name, e.g. "Traditional Chinese" — for chips, folders, menus. */
+  display: string;
   /** Countries / stores that use this locale (from the localization plan). */
   countries: string;
   rtl?: boolean;
@@ -32,19 +34,20 @@ export interface LocaleInfo {
 
 /** All export locales, ordered as in the localization plan. en-US is the base. */
 export const LANGUAGES: LocaleInfo[] = [
-  { code: 'en-US', label: 'EN-US', name: 'English (US)', countries: 'US + global fallback' },
-  { code: 'ja', label: 'JA', name: '日本語 (Japanese)', countries: 'Japan' },
-  { code: 'en-GB', label: 'EN-GB', name: 'English (UK)', countries: 'UK, Ireland, India/Gulf/SEA/Africa fallback' },
-  { code: 'de', label: 'DE', name: 'Deutsch (German)', countries: 'Germany, Austria, Switzerland, Liechtenstein' },
-  { code: 'en-CA', label: 'EN-CA', name: 'English (Canada)', countries: 'Canada' },
-  { code: 'ar', label: 'AR', name: 'العربية (Arabic)', countries: 'Saudi, UAE, Gulf, Egypt, MENA', rtl: true },
-  { code: 'nl', label: 'NL', name: 'Nederlands (Dutch)', countries: 'Netherlands, Belgium (Flemish)' },
-  { code: 'fr-FR', label: 'FR-FR', name: 'Français (French)', countries: 'France, Belgium, Switzerland, Monaco, Francophone Africa' },
-  { code: 'zh-Hant', label: 'ZH-HANT', name: '繁體中文 (Traditional Chinese)', countries: 'Taiwan, Hong Kong, Macau' },
-  { code: 'es-MX', label: 'ES-MX', name: 'Español (Mexico)', countries: 'Mexico + all Hispanic Latin America' },
-  { code: 'en-AU', label: 'EN-AU', name: 'English (Australia)', countries: 'Australia, New Zealand' },
-  { code: 'ko', label: 'KO', name: '한국어 (Korean)', countries: 'South Korea' },
-  { code: 'pt-BR', label: 'PT-BR', name: 'Português (Brazil)', countries: 'Brazil' },
+  { code: 'en-US', label: 'EN-US', name: 'English (US)', display: 'English (US)', countries: 'US + global fallback' },
+  { code: 'ja', label: 'JA', name: '日本語 (Japanese)', display: 'Japanese', countries: 'Japan' },
+  { code: 'nl', label: 'NL', name: 'Nederlands (Dutch)', display: 'Dutch', countries: 'Netherlands, Belgium (Flemish)' },
+  { code: 'es-MX', label: 'ES-MX', name: 'Español (Mexico)', display: 'Spanish (Mexico)', countries: 'Mexico + all Hispanic Latin America' },
+  { code: 'es-ES', label: 'ES-ES', name: 'Español (Spain)', display: 'Spanish (Spain)', countries: 'Spain' },
+  { code: 'de', label: 'DE', name: 'Deutsch (German)', display: 'German', countries: 'Germany, Austria, Switzerland, Liechtenstein' },
+  { code: 'pt-BR', label: 'PT-BR', name: 'Português (Brazil)', display: 'Portuguese (Brazil)', countries: 'Brazil' },
+  { code: 'zh-Hant', label: 'ZH-HANT', name: '繁體中文 (Traditional Chinese)', display: 'Traditional Chinese', countries: 'Taiwan, Hong Kong, Macau' },
+  { code: 'fr-FR', label: 'FR-FR', name: 'Français (French)', display: 'French', countries: 'France, Belgium, Switzerland, Monaco, Francophone Africa' },
+  { code: 'en-CA', label: 'EN-CA', name: 'English (Canada)', display: 'English (Canada)', countries: 'Canada' },
+  { code: 'ar', label: 'AR', name: 'العربية (Arabic MSA)', display: 'Arabic (MSA)', countries: 'Saudi, UAE, Gulf, Egypt, MENA', rtl: true },
+  { code: 'ko', label: 'KO', name: '한국어 (Korean)', display: 'Korean', countries: 'South Korea' },
+  { code: 'en-AU', label: 'EN-AU', name: 'English (Australia)', display: 'English (Australia)', countries: 'Australia, New Zealand' },
+  { code: 'en-GB', label: 'EN-GB', name: 'English (UK)', display: 'English (UK)', countries: 'UK, Ireland, India/Gulf/SEA/Africa fallback' },
 ];
 
 export const ALL_LANGUAGE_CODES: Language[] = LANGUAGES.map((l) => l.code);

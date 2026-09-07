@@ -47,7 +47,7 @@ const SIMPLE: Record<string, [string, string][]> = {
   barchart: [['toggleLeft', 'toggle L'], ['toggleRight', 'toggle R'], ['days', 'labels'], ['dates', 'numbers']],
   linechart: [['days', 'labels'], ['cardCaption', 'caption']],
   habitrow: [['text', 'name'], ['cardCaption', 'meta']],
-  heatmap: [['cardTitle', 'title'], ['cardValue', 'value'], ['cardCaption', 'caption']],
+  heatmap: [['cardTitle', 'title'], ['cardValue', 'value'], ['cardCaption', 'caption'], ['text', 'today label']],
   card: [['cardTitle', 'label'], ['cardValue', 'value'], ['cardCaption', 'caption']],
   datestrip: [['days', 'days'], ['dates', 'numbers']],
   laurel: [['cardValue', 'value'], ['cardCaption', 'caption']],

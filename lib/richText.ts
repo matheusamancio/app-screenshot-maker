@@ -87,7 +87,12 @@ const SPAN_SPLIT = /(<span style="[^"]*">|<\/span>)/g;
 
 /** Filled pill (matches the pill template look). */
 function pill(word: string, color: string, ink: string): string {
-  return `<span style="display:inline-block;background:${color};color:${ink};padding:0.04em 0.32em;border-radius:0.26em;line-height:1.04;">${word}</span>`;
+  // white-space:nowrap keeps the highlighted phrase intact — critical for CJK,
+  // which can break between ANY two characters (so "今天" would otherwise split
+  // and the background would only paint the first char). box-decoration-break:
+  // clone makes the pill background render on every line fragment if it ever
+  // does wrap, instead of only the first.
+  return `<span style="display:inline-block;background:${color};color:${ink};padding:0.04em 0.32em;border-radius:0.26em;line-height:1.04;white-space:nowrap;-webkit-box-decoration-break:clone;box-decoration-break:clone;">${word}</span>`;
 }
 
 /** Stored → display HTML: trusted spans pass through; text is escaped, pillified, \n→<br>. */

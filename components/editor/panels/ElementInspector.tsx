@@ -3,24 +3,54 @@
 import React from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import type { Slide, Alignment, SlideElement } from '@/types';
+import { BASE_LANGUAGE } from '@/types';
 import { kindLabel } from '@/lib/elements';
+import { LANGUAGES } from '@/lib/presets';
 import ColorPicker from '../../ui/ColorPicker';
 import Slider from '../../ui/Slider';
 import { Toggle, TextField, Section, AlignRow } from './inspectorShared';
+
+/** Scalar text fields that get localized per active language (arrays/structure stay base). */
+const LOCALIZABLE_TEXT = new Set(['text', 'cardTitle', 'cardValue', 'cardTitle2', 'cardValue2', 'cardCaption', 'unit', 'toggleLeft', 'toggleRight', 'days']);
 
 /**
  * The single-component inspector. Shows only the controls that apply to the
  * selected element's kind, followed by a shared Arrange (layer order + align to
  * screen) and Appearance (opacity + shadow) block.
  */
-export default function ElementInspector({ slide, el }: { slide: Slide; el: SlideElement }) {
+export default function ElementInspector({ slide, el: baseEl }: { slide: Slide; el: SlideElement }) {
   const updateElement = useProjectStore((s) => s.updateElement);
   const deleteElement = useProjectStore((s) => s.deleteElement);
   const copyElement = useProjectStore((s) => s.copyElement);
   const duplicateElement = useProjectStore((s) => s.duplicateElement);
   const reorderElement = useProjectStore((s) => s.reorderElement);
+  const setElementLocalizedText = useProjectStore((s) => s.setElementLocalizedText);
+  const activeLanguage = useProjectStore((s) => s.activeLanguage);
 
-  const update = (patch: Partial<SlideElement>) => updateElement(slide.id, el.id, patch);
+  const isBase = !activeLanguage || activeLanguage === BASE_LANGUAGE;
+  const langName = LANGUAGES.find((l) => l.code === activeLanguage)?.label || activeLanguage;
+
+  // Inputs show the active language's text for the scalar localizable fields; arrays/structure stay base.
+  const el: SlideElement = isBase
+    ? baseEl
+    : (() => {
+        const tr = baseEl.loc?.[activeLanguage] || {};
+        const v: SlideElement = { ...baseEl };
+        LOCALIZABLE_TEXT.forEach((f) => { const t = tr[f]; if (typeof t === 'string' && t.trim() !== '') (v as unknown as Record<string, unknown>)[f] = t; });
+        return v;
+      })();
+
+  // When a translation language is active, scalar text edits write that language; everything else (size,
+  // colour, structure, widget rows, chart series) always edits the base.
+  const update = (patch: Partial<SlideElement>) => {
+    if (isBase) { updateElement(slide.id, baseEl.id, patch); return; }
+    const baseOnly: Record<string, unknown> = {};
+    Object.entries(patch).forEach(([k, v]) => {
+      if (LOCALIZABLE_TEXT.has(k) && typeof v === 'string') setElementLocalizedText(slide.id, baseEl.id, activeLanguage, v, k);
+      else baseOnly[k] = v;
+    });
+    if (Object.keys(baseOnly).length) updateElement(slide.id, baseEl.id, baseOnly as Partial<SlideElement>);
+  };
 
   return (
     <div className="space-y-3">
@@ -28,11 +58,17 @@ export default function ElementInspector({ slide, el }: { slide: Slide; el: Slid
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold text-primary font-sora">{kindLabel(el.kind)}</div>
         <div className="flex gap-1">
-          <IconBtn title="Duplicate" onClick={() => duplicateElement(slide.id, el.id)}><DupIcon /></IconBtn>
-          <IconBtn title="Copy (⌘C)" onClick={() => copyElement(slide.id, el.id)}><CopyIcon /></IconBtn>
-          <IconBtn title="Delete" danger onClick={() => deleteElement(slide.id, el.id)}><TrashIcon /></IconBtn>
+          <IconBtn title="Duplicate" onClick={() => duplicateElement(slide.id, baseEl.id)}><DupIcon /></IconBtn>
+          <IconBtn title="Copy (⌘C)" onClick={() => copyElement(slide.id, baseEl.id)}><CopyIcon /></IconBtn>
+          <IconBtn title="Delete" danger onClick={() => deleteElement(slide.id, baseEl.id)}><TrashIcon /></IconBtn>
         </div>
       </div>
+
+      {!isBase && (
+        <div className="text-[11px] rounded-md bg-norte-primary-light border border-norte-primary/30 text-norte-primary px-2.5 py-1.5 leading-snug">
+          Editing the <span className="font-semibold">{langName}</span> copy. Text fields here update {langName}; sizes, colours, widget rows &amp; chart series always edit the base (★ English).
+        </div>
+      )}
 
       {/* Kind-specific controls */}
       {el.kind === 'text' ? (
@@ -320,21 +356,26 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
             <Slider label="Y max" value={sel.yMax || 50} min={5} max={200} onChange={(v) => update({ yMax: v })} />
           </div>
           <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Mais íngreme = mais consistente" />
+          <div className="section-label">Habits</div>
           {(sel.series || []).map((s, i) => (
             <div key={i} className="rounded-md border border-border-default p-2 space-y-2">
+              <TextField
+                value={s.label}
+                onChange={(v) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, label: v } : x)) })}
+                placeholder={`Habit ${i + 1} name`}
+              />
               <div className="flex items-center gap-2">
-                <ColorPicker color={s.color} onChange={(c) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, color: c } : x)) })} />
+                <div className="w-24 shrink-0">
+                  <ColorPicker color={s.color} onChange={(c) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, color: c } : x)) })} />
+                </div>
                 <input
-                  value={s.label}
-                  onChange={(e) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })}
-                  className="flex-1 min-w-0 px-2 py-1 rounded bg-overlay border border-border-default text-xs text-primary"
+                  value={s.values.map((v) => (v == null ? '' : v)).join(',')}
+                  onChange={(e) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, values: e.target.value.split(',').map((t) => (t.trim() === '' ? null : parseFloat(t))) } : x)) })}
+                  placeholder="0,6,16,31,45"
+                  title="Values (comma-separated, empty = no point)"
+                  className="flex-1 min-w-0 h-9 px-2.5 text-sm bg-surface border border-border-default rounded-md text-secondary focus:border-norte-primary focus:outline-none"
                 />
               </div>
-              <TextField
-                value={s.values.map((v) => (v == null ? '' : v)).join(',')}
-                onChange={(v) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, values: v.split(',').map((t) => (t.trim() === '' ? null : parseFloat(t))) } : x)) })}
-                placeholder="0,6,16,31,45 (empty = no point)"
-              />
             </div>
           ))}
           <div>

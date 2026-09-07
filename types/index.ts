@@ -9,6 +9,7 @@ export type Language =
   | 'en-CA'
   | 'en-AU'
   | 'es-MX'
+  | 'es-ES'
   | 'fr-FR'
   | 'de'
   | 'ja'

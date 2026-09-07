@@ -739,7 +739,7 @@ export const useProjectStore = create<ProjectState>()(
     }),
     {
       name: 'screenforge-project-v1',
-      version: 3,
+      version: 5,
       partialize: (state) =>
         Object.fromEntries(Object.entries(state).filter(([k]) => k !== '_past' && k !== '_future' && k !== 'isDraggingElement')) as ProjectState,
       migrate: (persisted: any, version: number) => {
@@ -772,6 +772,10 @@ export const useProjectStore = create<ProjectState>()(
           if (Array.isArray(persisted.projects)) {
             persisted.projects = persisted.projects.map((p: any) => (p?.deck?.slides ? { ...p, deck: { ...p.deck, slides: fixSlides(p.deck.slides) } } : p));
           }
+        }
+        if (version < 5) {
+          // The locale set is now exactly the 14 App Store locales — enable them all.
+          persisted.enabledLanguages = [...ALL_LANGUAGE_CODES];
         }
         return persisted;
       },
