@@ -130,7 +130,7 @@ export interface HabitHeroConfig {
   exploded?: boolean;
 }
 
-export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget';
+export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget' | 'press';
 
 /** One row in a 'today' widget (check + emoji + name + meta). */
 export interface WidgetRow {
@@ -211,7 +211,7 @@ export interface SlideElement {
   /** Show the 🔥 flame next to the current-streak value. */
   showFire?: boolean;
 
-  // heatmap grid
+  // heatmap grid (cols/rows) · star count for `stars` and the optional row under a `laurel` (cols, 0–5)
   cols?: number;
   rows?: number;
   /** 0..1 fraction of filled cells. */
@@ -244,6 +244,10 @@ export interface SlideElement {
   variant?: 'today' | 'done' | 'month';
   /** Rows for the 'today' widget. */
   items?: WidgetRow[];
+
+  // press ("as seen in" row of publication wordmarks)
+  // `text` = comma-separated names (TechCrunch, USA TODAY, Forbes, …) · `fontSize` = logo height · `color` = ink.
+  // Known names get their signature monochrome treatment; anything else renders as bold caps. Not localized.
 
   // datestrip / charts
   /** Comma-separated x/day labels, e.g. "Q,S,S,D,S,T" or "FEV,MAR,ABR,MAI,JUN". */

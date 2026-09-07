@@ -46,7 +46,7 @@ export default function ElementInspector({ slide, el: baseEl }: { slide: Slide; 
     if (isBase) { updateElement(slide.id, baseEl.id, patch); return; }
     const baseOnly: Record<string, unknown> = {};
     Object.entries(patch).forEach(([k, v]) => {
-      if (LOCALIZABLE_TEXT.has(k) && typeof v === 'string') setElementLocalizedText(slide.id, baseEl.id, activeLanguage, v, k);
+      if (LOCALIZABLE_TEXT.has(k) && typeof v === 'string' && baseEl.kind !== 'press') setElementLocalizedText(slide.id, baseEl.id, activeLanguage, v, k);
       else baseOnly[k] = v;
     });
     if (Object.keys(baseOnly).length) updateElement(slide.id, baseEl.id, baseOnly as Partial<SlideElement>);
@@ -646,7 +646,11 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
         <>
           <TextField value={sel.cardValue || ''} onChange={(v) => update({ cardValue: v })} placeholder="+38,420" />
           <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Hábitos cumpridos" />
-          <Slider label="Size" value={sel.size || 56} min={28} max={120} suffix="px" onChange={(v) => update({ size: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Size" value={sel.size || 56} min={28} max={120} suffix="px" onChange={(v) => update({ size: v })} />
+            <Slider label="Value size" value={sel.fontSize || 30} min={10} max={48} suffix="px" onChange={(v) => update({ fontSize: v })} />
+          </div>
+          <Slider label="Stars" value={sel.cols ?? 0} min={0} max={5} onChange={(v) => update({ cols: v })} />
           <div>
             <div className="section-label mb-1.5">Colour</div>
             <ColorPicker color={sel.color || '#111111'} onChange={(c) => update({ color: c })} />
@@ -702,6 +706,18 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
           <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="Q,S,S,D,S,T" />
           <TextField value={sel.dates || ''} onChange={(v) => update({ dates: v })} placeholder="28,29,30,31,1,2" />
           <Slider label="Highlight" value={sel.activeIndex ?? 5} min={0} max={9} onChange={(v) => update({ activeIndex: v })} />
+        </>
+      )}
+
+      {sel.kind === 'press' && (
+        <>
+          <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="TechCrunch, USA TODAY, Forbes" />
+          <Slider label="Logo size" value={sel.fontSize || 14} min={10} max={24} suffix="px" onChange={(v) => update({ fontSize: v })} />
+          <div>
+            <div className="section-label mb-1.5">Colour</div>
+            <ColorPicker color={sel.color || '#1A1A1A'} onChange={(c) => update({ color: c })} />
+          </div>
+          <p className="text-[11px] text-text-muted">Comma-separated names. TechCrunch, USA TODAY, Forbes, Wired, The Verge, Product Hunt, Mashable, CNET, Fast Company and Business Insider get their signature look; anything else renders as bold caps.</p>
         </>
       )}
     </div>

@@ -90,7 +90,8 @@ const SUBHEAD = (text: string): Omit<SlideElement, 'id'> => ({
   width: 320,
 });
 
-const NORTE_ROLES: RecipeRole[] = ['hero', 'use-case', 'differentiator', 'secondary', 'secondary', 'secondary', 'cta'];
+/** Roles of the seven extracted screens — the cover (NORTE_COVER) is the hero, so the old hero becomes a use-case screen. */
+const NORTE_ROLES: RecipeRole[] = ['use-case', 'use-case', 'differentiator', 'secondary', 'secondary', 'secondary', 'cta'];
 
 /** Clean single-line pill headlines (the source splits the pill word into its own node). */
 const NORTE_HEADLINES = [
@@ -266,6 +267,61 @@ function upgradeNorteScreenV2(els: RawEl[], i: number): RawEl[] {
   return out;
 }
 
+/**
+ * Centers of a rotated square lattice. `cells` are [col, row] offsets from the
+ * grid center (−1 / 0 / 1 for a 3×3), `pitch` the cell-to-cell distance and
+ * `rotation` the CSS rotation (degrees, clockwise-positive) applied to the wall —
+ * pass the same value as each tile's own `rotation` so the tiles stay aligned.
+ */
+export function rotatedGrid(cx: number, cy: number, pitch: number, rotation: number, cells: [number, number][]): { x: number; y: number }[] {
+  const t = (rotation * Math.PI) / 180;
+  const cos = Math.cos(t);
+  const sin = Math.sin(t);
+  return cells.map(([c, r]) => ({
+    x: Math.round(cx + pitch * (c * cos - r * sin)),
+    y: Math.round(cy + pitch * (c * sin + r * cos)),
+  }));
+}
+
+const NORTE_COVER_TILE = 134;
+const NORTE_COVER_ROTATION = -10;
+/** Row-major, center cell skipped (that one is the Norte logo). App-flavoured to match the "Block Apps" headline. */
+const NORTE_COVER_EMOJI = ['📺', '📸', '🎵', '💬', '📱', '👻', '🧵', '🎮'];
+
+/**
+ * The Refocus-style cover, rebuilt from Norte components — pill headline, bold
+ * subline, laurel + stars, press logos and a tilted 3×3 tile wall with the Norte
+ * logo in the middle. Spec: docs/superpowers/specs/2026-09-06-norte-cover-screen-design.md
+ */
+export function norteCoverElements(): RawEl[] {
+  const cells: [number, number][] = [[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+  const wall = 'norte-cover-wall';
+  let emojiIdx = 0;
+  const tiles: RawEl[] = rotatedGrid(195, 596, 148, NORTE_COVER_ROTATION, cells).map((p, i) => {
+    const [c, r] = cells[i];
+    if (c === 0 && r === 0) {
+      return { kind: 'icon', icon: 'mountain', tile: true, x: p.x, y: p.y, size: NORTE_COVER_TILE, radius: Math.round(NORTE_COVER_TILE * 0.28), bg: '#1A1A1A', color: '#F4F2ED', check: true, accent: '#E8923C', rotation: NORTE_COVER_ROTATION, scale: 1, groupId: wall };
+    }
+    return { kind: 'emoji', emoji: NORTE_COVER_EMOJI[emojiIdx++], tile: true, check: true, x: p.x, y: p.y, size: NORTE_COVER_TILE, rotation: NORTE_COVER_ROTATION, scale: 1, groupId: wall };
+  });
+  return [
+    ...tiles,
+    { kind: 'laurel', x: 195, y: 196, rotation: 0, scale: 1, size: 56, color: '#1A1A1A', cardValue: '15 MILLION', cardCaption: 'SUCCESS STORIES', fontSize: 15, cols: 5 },
+    { kind: 'press', x: 195, y: 262, rotation: 0, scale: 1, text: 'TechCrunch, USA TODAY, Forbes', fontSize: 14, color: '#1A1A1A' },
+    { kind: 'text', x: 195, y: 124, rotation: 0, scale: 1, text: 'Reduce <span style="font-weight:800;color:#1a1a1a">screen time</span> by <span style="font-weight:800;color:#1a1a1a">63%</span>!', fontSize: 14, fontWeight: 500, color: '#6f6c66', align: 'center', width: 340 },
+    { kind: 'text', x: 195, y: 80, rotation: 0, scale: 1, text: '[Block] Apps\n& Websites', fontSize: 29, fontWeight: 800, color: '#1a1a1a', align: 'center', width: 360 },
+  ];
+}
+
+/** Screen 1 of the Norte component kits. */
+const NORTE_COVER: StarterKitSlide = {
+  role: 'hero',
+  template: 'hero',
+  title: 'Block Apps & Websites',
+  noChrome: true,
+  elements: norteCoverElements(),
+};
+
 /** Each Norte screen, extracted faithfully from the source HTML then upgraded to use the reusable components. */
 const NORTE_COMPONENTS_SLIDES: StarterKitSlide[] = NORTE_SCREENS.map((elements, i) => ({
   role: NORTE_ROLES[i] || 'secondary',
@@ -292,7 +348,7 @@ export const STARTER_KITS: StarterKit[] = [
     background: { type: 'solid', solidColor: '#EDEBE5' },
     title: { fontFamily: 'Archivo', fontSize: 38, fontWeight: 800, color: '#111111', subtitleColor: '#6B6B6B', subtitleFontSize: 17, alignment: 'center' },
     device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 84 },
-    slides: NORTE_V2_SLIDES,
+    slides: [NORTE_COVER, ...NORTE_V2_SLIDES],
   },
   {
     id: 'norte-components',
@@ -302,7 +358,7 @@ export const STARTER_KITS: StarterKit[] = [
     background: { type: 'solid', solidColor: '#EDEBE5' },
     title: { fontFamily: 'Archivo', fontSize: 38, fontWeight: 800, color: '#111111', subtitleColor: '#6B6B6B', subtitleFontSize: 17, alignment: 'center' },
     device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 84 },
-    slides: NORTE_COMPONENTS_SLIDES,
+    slides: [NORTE_COVER, ...NORTE_COMPONENTS_SLIDES],
   },
   {
     id: 'norte-designs',

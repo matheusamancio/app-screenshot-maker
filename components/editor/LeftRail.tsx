@@ -23,6 +23,7 @@ import {
   newIconEl,
   newStarsEl,
   newLaurelEl,
+  newPressLogos,
   newDateStrip,
   newStreakWidget,
   newStatCard,
@@ -120,6 +121,7 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
     { label: 'Rounded box', make: () => newShape() },
     { label: 'Stars', make: () => newStarsEl() },
     { label: 'Laurel rating', make: () => newLaurelEl() },
+    { label: 'Press logos', make: () => newPressLogos() },
   ];
   const ICONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play'];
 

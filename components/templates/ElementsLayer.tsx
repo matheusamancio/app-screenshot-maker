@@ -69,6 +69,56 @@ function StarsRow({ n, size, color }: { n: number; size: number; color: string }
   );
 }
 
+/** Monochrome wordmark for one publication (known names get a recognizable treatment, others bold caps). */
+function PressLogo({ name, size, color, fam }: { name: string; size: number; color: string; fam: string }) {
+  const key = name.toLowerCase().replace(/[^a-z]/g, '');
+  const row: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: size * 0.32, color, whiteSpace: 'nowrap', lineHeight: 1 };
+  const sans = (weight: number, fs: number, ls = '0em'): React.CSSProperties => ({ fontFamily: fam, fontWeight: weight, fontSize: fs, letterSpacing: ls });
+  const disc = (d: number): React.CSSProperties => ({ width: d, height: d, borderRadius: '50%', background: color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 });
+  switch (key) {
+    case 'techcrunch':
+      return (
+        <span style={row}>
+          <svg width={size * 1.05} height={size * 0.84} viewBox="0 0 40 32" fill={color} aria-hidden="true">
+            <rect x="0" y="0" width="20" height="8" /><rect x="6" y="8" width="8" height="24" />
+            <rect x="22" y="0" width="18" height="8" /><rect x="22" y="0" width="8" height="32" /><rect x="22" y="24" width="18" height="8" />
+          </svg>
+          <span style={sans(700, size * 0.95, '-0.01em')}>TechCrunch</span>
+        </span>
+      );
+    case 'usatoday':
+      return (
+        <span style={row}>
+          <span style={disc(size * 0.9)} />
+          <span style={sans(800, size * 0.9, '0.02em')}>USA TODAY</span>
+        </span>
+      );
+    case 'forbes':
+      return <span style={{ ...row, fontFamily: "Georgia, 'Times New Roman', serif", fontWeight: 700, fontSize: size * 1.25 }}>Forbes</span>;
+    case 'wired':
+      return <span style={{ ...row, ...sans(800, size * 0.9, '0.18em') }}>WIRED</span>;
+    case 'theverge':
+      return <span style={{ ...row, ...sans(800, size * 0.9, '0.06em') }}>THE VERGE</span>;
+    case 'producthunt':
+      return (
+        <span style={row}>
+          <span style={disc(size * 0.95)}><span style={{ ...sans(800, size * 0.6), color: '#FFFFFF' }}>P</span></span>
+          <span style={sans(700, size * 0.95)}>Product Hunt</span>
+        </span>
+      );
+    case 'mashable':
+      return <span style={{ ...row, ...sans(800, size * 1.05, '-0.03em') }}>Mashable</span>;
+    case 'cnet':
+      return <span style={{ ...row, ...sans(800, size * 1.1, '-0.02em') }}>cnet</span>;
+    case 'fastcompany':
+      return <span style={{ ...row, ...sans(800, size * 0.85, '0.1em') }}>FAST COMPANY</span>;
+    case 'businessinsider':
+      return <span style={{ ...row, ...sans(800, size * 0.85, '0.04em') }}>BUSINESS INSIDER</span>;
+    default:
+      return <span style={{ ...row, ...sans(800, size * 0.9, '0.06em'), textTransform: 'uppercase' }}>{name}</span>;
+  }
+}
+
 function CheckBadge({ size, color = '#111111' }: { size: number; color?: string }) {
   return (
     <div
@@ -344,6 +394,12 @@ function darken(hex: string, amt: number): string {
   return `rgb(${d(0)}, ${d(2)}, ${d(4)})`;
 }
 
+const AR_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+/** Convert ASCII digits to Arabic-Indic — for RTL number DISPLAY only (data stays ASCII so charts can parse it). */
+function arNum(s: string | number): string {
+  return String(s).replace(/[0-9]/g, (d) => AR_DIGITS[+d]);
+}
+
 /** Framed habit-grid card: header (emoji + label + %), scatter grid with a dashed "today" cell, footer. */
 function HeatmapCard({ el, sf, rtl }: { el: SlideElement; sf: number; rtl?: boolean }) {
   const u = sf * ((el.w || 320) / 320); // width-proportional unit
@@ -394,12 +450,6 @@ function HeatmapCard({ el, sf, rtl }: { el: SlideElement; sf: number; rtl?: bool
 function BarChartCard({ el, sf, rtl }: { el: SlideElement; sf: number; rtl?: boolean }) {
   const u = sf * ((el.w || 300) / 300); // width-proportional unit
   const w = (el.w || 300) * sf;
-const AR_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-/** Convert ASCII digits to Arabic-Indic — for RTL number DISPLAY only (data stays ASCII so charts can parse it). */
-function arNum(s: string | number): string {
-  return String(s).replace(/[0-9]/g, (d) => AR_DIGITS[+d]);
-}
-
   const totalH = (el.h || 340) * sf;
   const toggleH = 38 * u;
   const gap = 12 * u;
@@ -641,6 +691,7 @@ function WidgetCard({ el, sf, rtl, editing, onTextChange, onEditEnd }: { el: Sli
   const pad = 16 * u;
   const fg = el.color || '#F4F2ED';
   const muted = 'rgba(244,242,232,0.5)';
+  const ls = (v: string) => (rtl ? 'normal' : v); // Arabic must not be letter-spaced
   const header = (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 * u }}>
       <span style={{ fontFamily: MONO, fontSize: 9.5 * u, letterSpacing: ls('0.14em'), color: muted, display: 'flex', alignItems: 'center', gap: 4 * u }}>
@@ -691,7 +742,6 @@ function WidgetCard({ el, sf, rtl, editing, onTextChange, onEditEnd }: { el: Sli
       </div>
     );
   }
-  const ls = (v: string) => (rtl ? 'normal' : v); // Arabic must not be letter-spaced
 
   // month
   const cols = el.cols || 7;
@@ -716,6 +766,10 @@ function WidgetCard({ el, sf, rtl, editing, onTextChange, onEditEnd }: { el: Sli
 export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, language, onSelect, onTextChange, onEditStart, onEditEnd, editingId, fontFamily, onToggleCheck, onContextMenu }: ElementsLayerProps) {
   if (!elements || elements.length === 0) return null;
   const interactive = !!onSelect;
+  // For RTL languages (Arabic): letters must stay joined (no letter-spacing),
+  // text needs an explicit rtl direction so sentence-final punctuation sits on
+  // the correct side, and directional glyphs (→) must mirror.
+  const rtl = isRtl(language || BASE_LANGUAGE);
 
   return (
     <>
@@ -766,10 +820,6 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
                 height: size,
                 borderRadius: size * 0.28,
                 background: 'linear-gradient(150deg, #FFFFFF 0%, #F4F2ED 100%)',
-  // For RTL languages (Arabic): letters must stay joined (no letter-spacing),
-  // text needs an explicit rtl direction so sentence-final punctuation sits on
-  // the correct side, and directional glyphs (→) must mirror.
-  const rtl = isRtl(language || BASE_LANGUAGE);
                 boxShadow: '0 10px 24px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.9)',
               }
             : { width: size, height: size };
@@ -786,7 +836,8 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
                 ) : (
                   <span style={{ lineHeight: 1 }}>{el.emoji}</span>
                 )}
-                {el.tile && el.check && <CheckBadge size={size * 0.4} />}
+                {/* badge grows with the tile but caps out so big tiles (the cover wall) keep a small corner check */}
+                {el.tile && el.check && <CheckBadge size={Math.min(size * 0.4, 36 * sf)} />}
               </div>
             </div>
           );
@@ -861,7 +912,7 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
               content = (
                 <div style={{ position: 'relative', width: ts, height: ts, borderRadius: (el.radius ?? 12) * sf, background: el.bg || '#1A1A1A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 22px rgba(0,0,0,0.16)' }}>
                   <NorteIcon name={el.icon || 'check'} size={ts * 0.56} color={el.color || '#FFFFFF'} />
-                  {el.check && <CheckBadge size={ts * 0.36} color={el.accent || '#E8923C'} />}
+                  {el.check && <CheckBadge size={Math.min(ts * 0.36, 36 * sf)} color={el.accent || '#E8923C'} />}
                 </div>
               );
             } else {
@@ -1022,13 +1073,29 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
                 )}
               </div>
             );
+          } else if (el.kind === 'press') {
+            const logoSize = (el.fontSize || 14) * sf;
+            const names = resolveElementText(el, language).split(',').map((s) => s.trim()).filter(Boolean);
+            content = (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 22 * sf, whiteSpace: 'nowrap' }}>
+                {names.map((n, i) => <PressLogo key={`${n}-${i}`} name={n} size={logoSize} color={el.color || '#1A1A1A'} fam={fam} />)}
+              </div>
+            );
           } else if (el.kind === 'stars') {
             content = <StarsRow n={el.cols || 5} size={(el.size || 16) * sf} color={el.color || '#111111'} />;
           } else if (el.kind === 'laurel') {
+            const lsize = (el.size || 56) * sf;
+            const lcolor = el.color || '#111111';
+            const starCount = Math.min(5, Math.max(0, el.cols || 0));
             content = (
-              <Laurel size={(el.size || 56) * sf} color={el.color || '#111111'} gap={6 * sf}>
-                {el.cardValue && <div style={{ fontFamily: fam, fontSize: (el.fontSize || 30) * sf, fontWeight: 800, color: el.color || '#111111' }}>{el.cardValue}</div>}
-                {el.cardCaption && <div style={{ fontFamily: fam, fontSize: 9 * sf, fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: 1 }}>{el.cardCaption}</div>}
+              <Laurel size={lsize} color={lcolor} gap={6 * sf}>
+                {el.cardValue && <div style={{ fontFamily: fam, fontSize: (el.fontSize || 30) * sf, fontWeight: 800, color: lcolor, whiteSpace: 'nowrap' }}>{el.cardValue}</div>}
+                {el.cardCaption && <div style={{ fontFamily: fam, fontSize: 9 * sf, fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: 1, whiteSpace: 'nowrap' }}>{el.cardCaption}</div>}
+                {starCount > 0 && (
+                  <div style={{ marginTop: 3 * sf }}>
+                    <StarsRow n={starCount} size={lsize * 0.16} color={lcolor} />
+                  </div>
+                )}
               </Laurel>
             );
           } else if (el.kind === 'heatmap') {

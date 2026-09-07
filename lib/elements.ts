@@ -70,6 +70,7 @@ export function kindLabel(kind: SlideElement['kind']): string {
     case 'habitrow': return 'Habit row';
     case 'notification': return 'Notification';
     case 'widget': return 'Widget';
+    case 'press': return 'Press logos';
     default: return 'Component';
   }
 }
@@ -152,8 +153,13 @@ export function newHabitRow(x = 195, y = 300, emoji = '🏋️', name = 'exercit
 export function newStarsEl(x = 195, y = 400): SlideElement {
   return { ...base(x, y), kind: 'stars', cols: 5, size: 16, color: '#111111' };
 }
+/** Laurel-wreath rating badge: big value + small-caps caption + 5 stars (App Store convention). */
 export function newLaurelEl(x = 195, y = 400): SlideElement {
-  return { ...base(x, y), kind: 'laurel', size: 56, color: '#111111', cardValue: '+38,420', cardCaption: 'Hábitos cumpridos' };
+  return { ...base(x, y), kind: 'laurel', size: 56, color: '#111111', cardValue: '+38,420', cardCaption: 'Hábitos cumpridos', cols: 5 };
+}
+/** "As seen in" row of publication wordmarks — comma-separated names, edited in the right panel. */
+export function newPressLogos(x = 195, y = 262): SlideElement {
+  return { ...base(x, y), kind: 'press', text: 'TechCrunch, USA TODAY, Forbes', fontSize: 14, color: '#1A1A1A' };
 }
 export function newDateStrip(x = 195, y = 280): SlideElement {
   return { ...base(x, y), kind: 'datestrip', w: 320, days: 'Q,S,S,D,S,T', dates: '28,29,30,31,1,2', activeIndex: 5 };
