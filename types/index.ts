@@ -130,7 +130,10 @@ export interface HabitHeroConfig {
   exploded?: boolean;
 }
 
-export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget' | 'press';
+export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget' | 'press' | 'app';
+
+/** Glyph inside the corner badge of a tile (emoji / icon / app). */
+export type BadgeGlyph = 'check' | 'lock' | 'hourglass';
 
 /** One row in a 'today' widget (check + emoji + name + meta). */
 export interface WidgetRow {
@@ -172,10 +175,15 @@ export interface SlideElement {
   emoji?: string;
   /** Render the emoji on a white rounded tile. */
   tile?: boolean;
-  /** Show the black check badge. */
+  /** Show the corner badge (emoji / icon / app tiles). */
   check?: boolean;
+  /** Glyph drawn inside the corner badge — defaults to a check. */
+  badge?: BadgeGlyph;
   /** Tile / emoji size in baseline px. */
   size?: number;
+
+  // app (brand app-icon tile — YouTube, Instagram, TikTok, …)
+  // `icon` = brand id from APP_BRANDS · `size` · `radius` (defaults to 22% of size) · `check`/`badge`/`accent` = corner badge
 
   // box-based components (shape / heatmap / card / stars / datestrip)
   /** Box size in baseline px. */

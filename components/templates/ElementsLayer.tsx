@@ -2,8 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { SlideElement, Language } from '@/types';
+import type { SlideElement, Language, BadgeGlyph } from '@/types';
 import { BASE_LANGUAGE } from '@/types';
+import AppIcon from './AppIcon';
 import { fontFamilyFor } from '@/lib/fonts';
 import { readableTextColor } from './EditablePillText';
 import { htmlToStored, storedToEditableHtml, renderRichHtml } from '@/lib/richText';
@@ -119,7 +120,10 @@ function PressLogo({ name, size, color, fam }: { name: string; size: number; col
   }
 }
 
-function CheckBadge({ size, color = '#111111' }: { size: number; color?: string }) {
+/** Round corner badge on a tile: check (done), lock (blocked) or hourglass (time-limited). */
+function CheckBadge({ size, color = '#111111', glyph = 'check' }: { size: number; color?: string; glyph?: BadgeGlyph }) {
+  const s = size * 0.56;
+  const p = { width: s, height: s, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   return (
     <div
       style={{
@@ -136,9 +140,13 @@ function CheckBadge({ size, color = '#111111' }: { size: number; color?: string 
         boxShadow: '0 4px 10px rgba(0,0,0,0.28)',
       }}
     >
-      <svg width={size * 0.56} height={size * 0.56} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 6 9 17 4 12" />
-      </svg>
+      {glyph === 'lock' ? (
+        <svg {...p} strokeWidth={2.4}><rect x="4.5" y="10.5" width="15" height="11" rx="2.5" fill="#fff" stroke="none" /><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /></svg>
+      ) : glyph === 'hourglass' ? (
+        <svg {...p} strokeWidth={2.4}><path d="M6 3h12M6 21h12M8 3c0 5 4 6 4 9s-4 4-4 9M16 3c0 5-4 6-4 9s4 4 4 9" /></svg>
+      ) : (
+        <svg {...p} strokeWidth={3.2}><polyline points="20 6 9 17 4 12" /></svg>
+      )}
     </div>
   );
 }
@@ -837,7 +845,7 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
                   <span style={{ lineHeight: 1 }}>{el.emoji}</span>
                 )}
                 {/* badge grows with the tile but caps out so big tiles (the cover wall) keep a small corner check */}
-                {el.tile && el.check && <CheckBadge size={Math.min(size * 0.4, 36 * sf)} />}
+                {el.tile && el.check && <CheckBadge size={Math.min(size * 0.4, 36 * sf)} glyph={el.badge} />}
               </div>
             </div>
           );
@@ -912,12 +920,21 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
               content = (
                 <div style={{ position: 'relative', width: ts, height: ts, borderRadius: (el.radius ?? 12) * sf, background: el.bg || '#1A1A1A', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 22px rgba(0,0,0,0.16)' }}>
                   <NorteIcon name={el.icon || 'check'} size={ts * 0.56} color={el.color || '#FFFFFF'} />
-                  {el.check && <CheckBadge size={Math.min(ts * 0.36, 36 * sf)} color={el.accent || '#E8923C'} />}
+                  {el.check && <CheckBadge size={Math.min(ts * 0.36, 36 * sf)} color={el.accent || '#E8923C'} glyph={el.badge} />}
                 </div>
               );
             } else {
               content = <NorteIcon name={el.icon || 'check'} size={Math.min(w, h)} color={el.color || '#111111'} />;
             }
+          } else if (el.kind === 'app') {
+            const ts = (el.size || 96) * sf;
+            const radius = (el.radius ?? Math.round((el.size || 96) * 0.22)) * sf;
+            content = (
+              <div style={{ position: 'relative', width: ts, height: ts, borderRadius: radius, boxShadow: '0 10px 24px rgba(0,0,0,0.18)' }}>
+                <AppIcon brand={el.icon || 'youtube'} size={ts} radius={radius} />
+                {el.check && <CheckBadge size={Math.min(ts * 0.36, 36 * sf)} color={el.accent || '#111111'} glyph={el.badge} />}
+              </div>
+            );
           } else if (el.kind === 'button') {
             content = (
               <div style={{ display: 'inline-flex', flexDirection: rtl ? 'row-reverse' : 'row', alignItems: 'center', gap: 10 * sf, height: (el.h || 56) * sf, padding: `0 ${30 * sf}px`, background: el.bg || '#1A1A1A', color: el.color || '#F4F2ED', borderRadius: (el.radius ?? 28) * sf, fontFamily: fam, fontSize: (el.fontSize || 17) * sf, fontWeight: 700, boxShadow: '0 8px 20px rgba(0,0,0,0.16)', whiteSpace: 'nowrap' }}>

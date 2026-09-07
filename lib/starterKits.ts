@@ -285,31 +285,32 @@ export function rotatedGrid(cx: number, cy: number, pitch: number, rotation: num
 
 const NORTE_COVER_TILE = 134;
 const NORTE_COVER_ROTATION = -10;
-/** Row-major, center cell skipped (that one is the Norte logo). App-flavoured to match the "Block Apps" headline. */
-const NORTE_COVER_EMOJI = ['📺', '📸', '🎵', '💬', '📱', '👻', '🧵', '🎮'];
+/** Row-major, center cell skipped (that one is the Norte logo) — the blocked-apps wall, mirroring the reference. */
+const NORTE_COVER_APPS = ['youtube', 'instagram', 'tiktok', 'netflix', 'whatsapp', 'snapchat', 'threads', 'x'];
 
 /**
  * The Refocus-style cover, rebuilt from Norte components — pill headline, bold
- * subline, laurel + stars, press logos and a tilted 3×3 tile wall with the Norte
- * logo in the middle. Spec: docs/superpowers/specs/2026-09-06-norte-cover-screen-design.md
+ * subline, laurel + stars, press logos and a tilted 3×3 wall of real app icons
+ * (padlock badges) with the Norte logo in the middle.
+ * Spec: docs/superpowers/specs/2026-09-06-norte-cover-screen-design.md
  */
 export function norteCoverElements(): RawEl[] {
   const cells: [number, number][] = [[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
   const wall = 'norte-cover-wall';
-  let emojiIdx = 0;
-  const tiles: RawEl[] = rotatedGrid(195, 596, 148, NORTE_COVER_ROTATION, cells).map((p, i) => {
+  let appIdx = 0;
+  const tiles: RawEl[] = rotatedGrid(195, 612, 148, NORTE_COVER_ROTATION, cells).map((p, i) => {
     const [c, r] = cells[i];
     if (c === 0 && r === 0) {
-      return { kind: 'icon', icon: 'mountain', tile: true, x: p.x, y: p.y, size: NORTE_COVER_TILE, radius: Math.round(NORTE_COVER_TILE * 0.28), bg: '#1A1A1A', color: '#F4F2ED', check: true, accent: '#E8923C', rotation: NORTE_COVER_ROTATION, scale: 1, groupId: wall };
+      return { kind: 'icon', icon: 'mountain', tile: true, x: p.x, y: p.y, size: NORTE_COVER_TILE, radius: Math.round(NORTE_COVER_TILE * 0.22), bg: '#1A1A1A', color: '#F4F2ED', check: true, accent: '#E8923C', rotation: NORTE_COVER_ROTATION, scale: 1, groupId: wall };
     }
-    return { kind: 'emoji', emoji: NORTE_COVER_EMOJI[emojiIdx++], tile: true, check: true, x: p.x, y: p.y, size: NORTE_COVER_TILE, rotation: NORTE_COVER_ROTATION, scale: 1, groupId: wall };
+    return { kind: 'app', icon: NORTE_COVER_APPS[appIdx++], x: p.x, y: p.y, size: NORTE_COVER_TILE, radius: Math.round(NORTE_COVER_TILE * 0.22), check: true, badge: 'lock', accent: '#111111', rotation: NORTE_COVER_ROTATION, scale: 1, groupId: wall };
   });
   return [
     ...tiles,
-    { kind: 'laurel', x: 195, y: 196, rotation: 0, scale: 1, size: 56, color: '#1A1A1A', cardValue: '15 MILLION', cardCaption: 'SUCCESS STORIES', fontSize: 15, cols: 5 },
-    { kind: 'press', x: 195, y: 262, rotation: 0, scale: 1, text: 'TechCrunch, USA TODAY, Forbes', fontSize: 14, color: '#1A1A1A' },
-    { kind: 'text', x: 195, y: 124, rotation: 0, scale: 1, text: 'Reduce <span style="font-weight:800;color:#1a1a1a">screen time</span> by <span style="font-weight:800;color:#1a1a1a">63%</span>!', fontSize: 14, fontWeight: 500, color: '#6f6c66', align: 'center', width: 340 },
-    { kind: 'text', x: 195, y: 80, rotation: 0, scale: 1, text: '[Block] Apps\n& Websites', fontSize: 29, fontWeight: 800, color: '#1a1a1a', align: 'center', width: 360 },
+    { kind: 'laurel', x: 195, y: 214, rotation: 0, scale: 1, size: 56, color: '#1A1A1A', cardValue: '15 MILLION', cardCaption: 'SUCCESS STORIES', fontSize: 15, cols: 5 },
+    { kind: 'press', x: 195, y: 280, rotation: 0, scale: 1, text: 'TechCrunch, USA TODAY, Forbes', fontSize: 14, color: '#1A1A1A' },
+    { kind: 'text', x: 195, y: 146, rotation: 0, scale: 1, text: 'Reduce <span style="font-weight:800;color:#1a1a1a">screen time</span> by <span style="font-weight:800;color:#1a1a1a">63%</span>!', fontSize: 14, fontWeight: 500, color: '#6f6c66', align: 'center', width: 340 },
+    { kind: 'text', x: 195, y: 88, rotation: 0, scale: 1, text: '[Block] Apps\n& Websites', fontSize: 36, fontWeight: 800, color: '#1a1a1a', align: 'center', width: 370 },
   ];
 }
 

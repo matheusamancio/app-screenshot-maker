@@ -85,6 +85,21 @@ bottom), then laurel, press row, subline, headline.
 - Real app-brand icons (YouTube, Instagram, …) or hourglass badges — tiles stay Norte emoji tiles.
 - Changing other Norte screens, the indigo `norte` kit, or adding a test runner to the repo.
 
+## Revision (same day, after review)
+
+- **Real app icons instead of emoji tiles.** New `app` element kind ("App icon"): a
+  brand tile drawn as inline SVG on the brand colour (`components/templates/AppIcon.tsx`,
+  `APP_BRANDS`: YouTube, Instagram, TikTok, Snapchat, X, Threads, Netflix, WhatsApp,
+  Facebook). Fields: `icon` (brand id), `size`, `radius` (default 22 % of size),
+  `check` / `badge` / `accent` for the corner badge. Picker in the Elements panel and
+  the inspector. No text → not localizable.
+- **Badge glyph.** `badge?: 'check' | 'lock' | 'hourglass'` on every tile kind (emoji,
+  icon, app); the cover's app tiles use the padlock. Inspector shows a Badge picker
+  whenever the corner badge is on.
+- **Bigger headline.** 36 px (was 29) at y = 88; subline → y 146, laurel → y 214, press
+  → y 280, wall center → y 612. Wall order (row-major, centre = Norte logo): YouTube,
+  Instagram, TikTok / Netflix, ·, WhatsApp / Snapchat, Threads, X.
+
 ## Verification
 
 1. `npx tsc --noEmit` and `npm run build` pass.

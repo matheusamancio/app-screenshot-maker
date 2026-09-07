@@ -71,6 +71,7 @@ export function kindLabel(kind: SlideElement['kind']): string {
     case 'notification': return 'Notification';
     case 'widget': return 'Widget';
     case 'press': return 'Press logos';
+    case 'app': return 'App icon';
     default: return 'Component';
   }
 }
@@ -156,6 +157,10 @@ export function newStarsEl(x = 195, y = 400): SlideElement {
 /** Laurel-wreath rating badge: big value + small-caps caption + 5 stars (App Store convention). */
 export function newLaurelEl(x = 195, y = 400): SlideElement {
   return { ...base(x, y), kind: 'laurel', size: 56, color: '#111111', cardValue: '+38,420', cardCaption: 'Hábitos cumpridos', cols: 5 };
+}
+/** Brand app-icon tile (YouTube, Instagram, TikTok, …) with a padlock badge — the "blocked app" sticker. */
+export function newAppIcon(brand = 'youtube', x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'app', icon: brand, size: 96, check: true, badge: 'lock', accent: '#111111' };
 }
 /** "As seen in" row of publication wordmarks — comma-separated names, edited in the right panel. */
 export function newPressLogos(x = 195, y = 262): SlideElement {

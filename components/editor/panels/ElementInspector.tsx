@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { useProjectStore } from '@/store/projectStore';
-import type { Slide, Alignment, SlideElement } from '@/types';
+import type { Slide, Alignment, SlideElement, BadgeGlyph } from '@/types';
 import { BASE_LANGUAGE } from '@/types';
 import { kindLabel } from '@/lib/elements';
 import { LANGUAGES } from '@/lib/presets';
+import AppIcon, { APP_BRANDS } from '../../templates/AppIcon';
 import ColorPicker from '../../ui/ColorPicker';
 import Slider from '../../ui/Slider';
 import { Toggle, TextField, Section, AlignRow } from './inspectorShared';
@@ -173,8 +174,30 @@ function EmojiEditor({ el, update }: { el: SlideElement; update: (p: Partial<Sli
         <Toggle on={el.tile !== false} onToggle={() => update({ tile: !(el.tile !== false) })} />
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-xs text-text-muted">Check badge</span>
+        <span className="text-xs text-text-muted">Corner badge</span>
         <Toggle on={!!el.check} onToggle={() => update({ check: !el.check })} />
+      </div>
+      {el.check && <BadgePicker value={el.badge} onChange={(b) => update({ badge: b })} />}
+    </div>
+  );
+}
+
+/** Check / lock / hourglass glyph selector for tile corner badges. */
+function BadgePicker({ value, onChange }: { value?: BadgeGlyph; onChange: (b: BadgeGlyph) => void }) {
+  const opts: { id: BadgeGlyph; label: string }[] = [
+    { id: 'check', label: '✓ Check' },
+    { id: 'lock', label: '🔒 Lock' },
+    { id: 'hourglass', label: '⏳ Timer' },
+  ];
+  return (
+    <div>
+      <div className="section-label mb-1.5">Badge</div>
+      <div className="grid grid-cols-3 gap-1 bg-overlay rounded-md p-1 border border-border-default">
+        {opts.map((o) => (
+          <button key={o.id} onClick={() => onChange(o.id)} className={`h-7 text-[11px] rounded font-medium ${(value || 'check') === o.id ? 'bg-surface text-norte-primary shadow-sm' : 'text-text-muted'}`}>
+            {o.label}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -420,11 +443,49 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
                 <Toggle on={!!sel.check} onToggle={() => update({ check: !sel.check })} />
               </label>
               {sel.check && (
-                <div>
-                  <div className="section-label mb-1.5">Badge colour</div>
-                  <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
-                </div>
+                <>
+                  <BadgePicker value={sel.badge} onChange={(b) => update({ badge: b })} />
+                  <div>
+                    <div className="section-label mb-1.5">Badge colour</div>
+                    <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+                  </div>
+                </>
               )}
+            </>
+          )}
+        </>
+      )}
+
+      {sel.kind === 'app' && (
+        <>
+          <div>
+            <div className="section-label mb-1.5">App</div>
+            <div className="grid grid-cols-5 gap-1.5">
+              {APP_BRANDS.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => update({ icon: b.id })}
+                  title={b.label}
+                  className={`aspect-square rounded-md border flex items-center justify-center ${(sel.icon || 'youtube') === b.id ? 'border-norte-primary bg-norte-primary-light' : 'border-border-default bg-overlay'}`}
+                >
+                  <AppIcon brand={b.id} size={26} radius={6} />
+                </button>
+              ))}
+            </div>
+          </div>
+          <Slider label="Size" value={sel.size || 96} min={40} max={200} suffix="px" onChange={(v) => update({ size: v })} />
+          <Slider label="Corner radius" value={sel.radius ?? Math.round((sel.size || 96) * 0.22)} min={0} max={Math.round((sel.size || 96) / 2)} suffix="px" onChange={(v) => update({ radius: v })} />
+          <label className="flex items-center justify-between gap-2 px-1">
+            <span className="section-label">Corner badge</span>
+            <Toggle on={!!sel.check} onToggle={() => update({ check: !sel.check })} />
+          </label>
+          {sel.check && (
+            <>
+              <BadgePicker value={sel.badge} onChange={(b) => update({ badge: b })} />
+              <div>
+                <div className="section-label mb-1.5">Badge colour</div>
+                <ColorPicker color={sel.accent || '#111111'} onChange={(c) => update({ accent: c })} />
+              </div>
             </>
           )}
         </>

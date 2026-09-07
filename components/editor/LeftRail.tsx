@@ -24,6 +24,7 @@ import {
   newStarsEl,
   newLaurelEl,
   newPressLogos,
+  newAppIcon,
   newDateStrip,
   newStreakWidget,
   newStatCard,
@@ -35,6 +36,7 @@ import {
 import type { SlideElement } from '@/types';
 import { fileToBase64 } from '@/lib/utils';
 import BackgroundPanel from './panels/BackgroundPanel';
+import AppIcon, { APP_BRANDS } from '../templates/AppIcon';
 import { useToast } from '../ui/Toast';
 import type { Slide } from '@/types';
 
@@ -216,6 +218,21 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
                         <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#111] flex items-center justify-center">
                           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                         </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="section-label mb-2">App icons</div>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {APP_BRANDS.map((b) => (
+                      <button
+                        key={b.id}
+                        onClick={() => add(newAppIcon(b.id))}
+                        title={`Add ${b.label} icon (with lock badge)`}
+                        className="aspect-square rounded-md border border-border-default bg-overlay hover:bg-muted flex items-center justify-center"
+                      >
+                        <AppIcon brand={b.id} size={28} radius={7} />
                       </button>
                     ))}
                   </div>
