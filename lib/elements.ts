@@ -117,10 +117,10 @@ export function newHeatmapCard(x = 195, y = 480): SlideElement {
 export function newIconEl(x = 195, y = 400, icon = 'check'): SlideElement {
   return { ...base(x, y), kind: 'icon', w: 40, h: 40, icon, color: '#111111' };
 }
-/** Norte app icon: dark rounded square with the white mountain mark.
+/** Norte app icon: the real logo artwork (public/apps/norte.png) on a rounded tile.
  *  Pass check=true for the orange "completed" badge variant. */
 export function newNorteLogo(x = 195, y = 360, check = false): SlideElement {
-  return { ...base(x, y), kind: 'icon', icon: 'mountain', tile: true, size: 88, radius: 22, bg: '#1A1A1A', color: '#F4F2ED', check, accent: '#E8923C' };
+  return { ...base(x, y), kind: 'app', icon: 'norte', size: 88, radius: 20, check, badge: 'check', accent: '#E8923C' };
 }
 /** Black circular badge with a white padlock (privacy / locked). */
 export function newLockBadge(x = 195, y = 320): SlideElement {

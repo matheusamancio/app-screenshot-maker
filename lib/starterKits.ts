@@ -182,6 +182,10 @@ function upgradeNorteScreen(els: RawEl[], i: number): RawEl[] {
     drop((e) => e.kind === 'shape' && e.bg === '#fcfbf8' && anyNear(e, tiles, 6));
     drop((e) => e.kind === 'shape' && e.bg === '#1a1a1a' && (e.w || 0) <= 22 && anyNear(e, dots, 8));
     out = out.map((e) => (e.kind === 'emoji' && anyNear(e, tiles, 8) ? { ...e, tile: true, check: true, size: 58 } : e));
+    // In-phone app-icon placeholder (light square + notch circle) → the real Norte logo
+    drop((e) => e.kind === 'shape' && near(e, 195, 475, 6) && (e.w || 0) <= 80);
+    drop((e) => e.kind === 'shape' && near(e, 226, 445, 6) && (e.w || 0) <= 30);
+    add({ kind: 'app', icon: 'norte', x: 195, y: 475, size: 75, radius: 17, check: false });
   } else if (i === 1) {
     // Compact habit list → Habit-row card components (check toggle + emoji + name + streak)
     drop((e) => e.kind === 'shape' && (e.w || 0) < 215 && (near(e, 195, 394, 7) || near(e, 195, 445, 7) || near(e, 195, 496, 7) || near(e, 118, 394, 7) || near(e, 118, 445, 7)));
@@ -225,7 +229,7 @@ function upgradeNorteScreen(els: RawEl[], i: number): RawEl[] {
     // App icon → Norte logo (with orange check); CTA pill → Button component
     drop((e) => e.kind === 'shape' && (near(e, 195, 365, 8) || near(e, 233, 328, 8) || near(e, 195, 541, 8)));
     drop((e) => e.kind === 'text' && near(e, 195, 541, 8));
-    add({ kind: 'icon', icon: 'mountain', tile: true, x: 195, y: 365, size: 90, radius: 21, bg: '#1C1C1E', color: '#F4F2ED', check: true, accent: '#E8923C' });
+    add({ kind: 'app', icon: 'norte', x: 195, y: 365, size: 90, radius: 21, check: true, badge: 'check', accent: '#E8923C' });
     add({ kind: 'button', x: 195, y: 541, text: 'Get Norte — Free', showArrow: true, bg: '#1A1A1A', color: '#F4F2ED', fontSize: 15, radius: 23, h: 46 });
   }
   return useNortePhoneFrame(out);

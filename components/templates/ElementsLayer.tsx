@@ -749,9 +749,7 @@ function NotificationCard({ el, sf, editing, onTextChange, onEditEnd }: { el: Sl
     <div style={{ width: w, background: el.bg || '#FBFAF8', borderRadius: (el.radius ?? 20) * u, padding: pad, fontFamily: fontFamilyFor('Sora'), boxShadow: '0 10px 30px rgba(0,0,0,0.10)', display: 'flex', flexDirection: 'column', gap: 5 * u }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 * u }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 * u }}>
-          <div style={{ width: 18 * u, height: 18 * u, borderRadius: 5 * u, background: '#1A1A1A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <NorteIcon name="mountain" size={12 * u} color="#F4F2ED" />
-          </div>
+          <AppIcon brand="norte" size={18 * u} radius={5 * u} />
           <span style={{ fontFamily: MONO, fontSize: 11 * u, letterSpacing: '0.12em', color: '#8a877f' }}>{el.cardTitle}</span>
         </div>
         <span style={{ fontFamily: MONO, fontSize: 11 * u, color: '#a8a49c' }}>{el.cardValue}</span>
