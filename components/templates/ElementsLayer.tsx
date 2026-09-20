@@ -56,6 +56,8 @@ function NorteIcon({ name, size, color }: { name: string; size: number; color: s
     case 'plus': return (<svg {...p}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>);
     case 'mountain': return (<svg width={size} height={size} viewBox="0 0 24 24" fill={color}><path d="M3 20 9 8l3 5 2-3 4 10z" /><circle cx="14" cy="3.5" r="1.4" /></svg>);
     case 'play': return (<svg width={size} height={size} viewBox="0 0 24 24" fill={color}><path d="M8 5v14l11-7z" /></svg>);
+    case 'chevron-left': return (<svg {...p} strokeWidth={2.6}><polyline points="15 5 8 12 15 19" /></svg>);
+    case 'chevron-right': return (<svg {...p} strokeWidth={2.6}><polyline points="9 5 16 12 9 19" /></svg>);
     default: return (<svg {...p}><circle cx="12" cy="12" r="9" /></svg>);
   }
 }
@@ -1143,7 +1145,7 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
             content = (
               <Laurel size={lsize} color={lcolor} gap={6 * sf}>
                 {el.cardValue && <div style={{ fontFamily: fam, fontSize: (el.fontSize || 30) * sf, fontWeight: 800, color: lcolor, whiteSpace: 'nowrap' }}>{el.cardValue}</div>}
-                {el.cardCaption && <div style={{ fontFamily: fam, fontSize: 9 * sf, fontWeight: 700, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: 1, whiteSpace: 'nowrap' }}>{el.cardCaption}</div>}
+                {el.cardCaption && <div style={{ fontFamily: fam, fontSize: 9 * sf, fontWeight: 700, color: hexToRgba(lcolor, 0.62), textTransform: 'uppercase', letterSpacing: 1, whiteSpace: 'nowrap' }}>{el.cardCaption}</div>}
                 {starCount > 0 && (
                   <div style={{ marginTop: 3 * sf }}>
                     <StarsRow n={starCount} size={lsize * 0.16} color={lcolor} />

@@ -203,7 +203,7 @@ function BadgePicker({ value, onChange }: { value?: BadgeGlyph; onChange: (b: Ba
   );
 }
 
-const ICON_OPTIONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play'];
+const ICON_OPTIONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play', 'chevron-left', 'chevron-right'];
 
 /** Grid of brand tiles (YouTube, Instagram, …, Norte) used by the App icon and App usage row inspectors. */
 function BrandPicker({ value, onChange }: { value?: string; onChange: (id: string) => void }) {
