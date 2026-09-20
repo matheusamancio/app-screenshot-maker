@@ -70,6 +70,24 @@ function StarsRow({ n, size, color }: { n: number; size: number; color: string }
   );
 }
 
+/** iOS status cluster — signal bars, wifi, battery — in one colour, `height` px tall. */
+function StatusIcons({ height, color }: { height: number; color: string }) {
+  return (
+    <svg width={height * 5.4} height={height} viewBox="0 0 54 10" fill={color} style={{ display: 'block' }}>
+      <rect x="0" y="6.5" width="2.6" height="3.5" rx="0.7" />
+      <rect x="4" y="4.5" width="2.6" height="5.5" rx="0.7" />
+      <rect x="8" y="2.5" width="2.6" height="7.5" rx="0.7" />
+      <rect x="12" y="0.5" width="2.6" height="9.5" rx="0.7" />
+      <path d="M18.6 3.9a10.4 10.4 0 0 1 14.4 0l-1.6 1.8a8 8 0 0 0-11.2 0z" />
+      <path d="M21.3 6.7a6.4 6.4 0 0 1 9 0l-1.6 1.8a4 4 0 0 0-5.8 0z" />
+      <circle cx="25.8" cy="9.1" r="1.3" />
+      <rect x="36.5" y="0.75" width="14.5" height="8.5" rx="2.4" fill="none" stroke={color} strokeWidth="1" />
+      <rect x="38" y="2.25" width="11.5" height="5.5" rx="1.3" />
+      <rect x="52" y="3.3" width="1.5" height="3.4" rx="0.75" opacity="0.5" />
+    </svg>
+  );
+}
+
 /** Monochrome wordmark for one publication (known names get a recognizable treatment, others bold caps). */
 function PressLogo({ name, size, color, fam }: { name: string; size: number; color: string; fam: string }) {
   const key = name.toLowerCase().replace(/[^a-z]/g, '');
@@ -978,23 +996,33 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
             if (el.phoneStyle === 'frame') {
               const bezel = el.bg || '#2B2B2D';
               const screen = el.bg2 || '#EFEDE8';
+              const ink = el.color || '#1A1A1A';
               const bw = Math.max(3 * sf, w * 0.022); // bezel width
               const u = ((el.w || 240) / 240) * sf; // status-bar scale relative to a 240-wide frame
+              const islandTop = h * 0.045;
+              const islandH = Math.max(14 * sf, h * 0.042);
+              const row2 = islandTop + islandH + 10 * u; // app-name row under the status row
               content = (
                 <div style={{ width: w, height: h, borderRadius: radius, background: bezel, padding: bw, boxSizing: 'border-box', boxShadow: `0 ${22 * sf}px ${55 * sf}px rgba(0,0,0,0.22)`, position: 'relative' }}>
                   <div style={{ width: '100%', height: '100%', borderRadius: radius - bw, background: screen, position: 'relative', overflow: 'hidden', fontFamily: fontFamilyFor('Sora') }}>
                     {island}
-                    {/* status bar — only when the frame carries an app name (a "pure"
-                        frame with cardTitle:'' is just bezel + screen, e.g. behind the
-                        Norte screens which provide their own status bar) */}
+                    {/* status row (time + signal/wifi/battery), centred on the island — only when a time is set.
+                        A "pure" frame with no time is just bezel + screen (the Norte kit screens draw their own). */}
+                    {el.text && (
+                      <>
+                        <div style={{ position: 'absolute', top: islandTop, left: 18 * u, height: islandH, display: 'flex', alignItems: 'center', fontSize: 13 * u, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{el.text}</div>
+                        <div style={{ position: 'absolute', top: islandTop, right: 16 * u, height: islandH, display: 'flex', alignItems: 'center' }}>
+                          <StatusIcons height={11 * u} color={ink} />
+                        </div>
+                      </>
+                    )}
+                    {/* app name + avatar — only when the frame carries an app name */}
                     {el.cardTitle && (
                       <>
-                        <div style={{ position: 'absolute', top: 14 * u, left: 16 * u, fontSize: 13 * u, fontWeight: 700, color: '#1A1A1A' }}>{el.text || '9:41'}</div>
-                        <div style={{ position: 'absolute', top: 36 * u, left: 18 * u, fontFamily: MONO, fontSize: 10 * u, letterSpacing: '0.14em', color: '#1A1A1A' }}>
-                          {el.cardTitle}<span style={{ color: '#a8a49c' }}>°</span>
+                        <div style={{ position: 'absolute', top: row2, left: 18 * u, fontFamily: MONO, fontSize: 10 * u, letterSpacing: '0.14em', color: ink }}>
+                          {el.cardTitle}<span style={{ opacity: 0.55 }}>°</span>
                         </div>
-                        {/* avatar circle (top-right) */}
-                        <div style={{ position: 'absolute', top: 30 * u, right: 16 * u, width: 26 * u, height: 26 * u, borderRadius: '50%', background: '#1A1A1A' }} />
+                        <div style={{ position: 'absolute', top: row2 - 7 * u, right: 16 * u, width: 26 * u, height: 26 * u, borderRadius: '50%', background: ink }} />
                       </>
                     )}
                   </div>

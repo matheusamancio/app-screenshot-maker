@@ -248,6 +248,7 @@ export interface SlideElement {
   island?: boolean;
   /** Phone visual: 'gradient' (decorative dark→grey) or 'frame' (realistic bezel + light screen + status bar). */
   phoneStyle?: 'gradient' | 'frame';
+  // frame status bar: `text` = time (shown with signal/wifi/battery when non-empty) · `cardTitle` = app name + avatar (shown when non-empty) · `color` = status ink (default #1A1A1A)
 
   // widget (lock-screen / home-screen Norte widgets)
   /** Widget layout: today list · done square · month heatmap square. */

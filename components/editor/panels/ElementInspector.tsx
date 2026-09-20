@@ -579,7 +579,7 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
                 <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="9:41" />
                 <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="NORTE" />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
                   <div className="section-label mb-1.5">Bezel</div>
                   <ColorPicker color={sel.bg || '#2B2B2D'} onChange={(c) => update({ bg: c })} />
@@ -588,8 +588,12 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
                   <div className="section-label mb-1.5">Screen</div>
                   <ColorPicker color={sel.bg2 || '#EFEDE8'} onChange={(c) => update({ bg2: c })} />
                 </div>
+                <div>
+                  <div className="section-label mb-1.5">Status</div>
+                  <ColorPicker color={sel.color || '#1A1A1A'} onChange={(c) => update({ color: c })} />
+                </div>
               </div>
-              <p className="text-[11px] text-text-muted">An empty device — drop other components on top to fill the screen. Clear the app name to hide the status bar.</p>
+              <p className="text-[11px] text-text-muted">An empty device — drop other components on top to fill the screen. Clear the time to hide the status bar, clear the app name to hide the name + avatar.</p>
             </>
           ) : (
             <div className="grid grid-cols-2 gap-2">
