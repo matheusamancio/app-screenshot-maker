@@ -12,7 +12,7 @@ import Slider from '../../ui/Slider';
 import { Toggle, TextField, Section, AlignRow } from './inspectorShared';
 
 /** Scalar text fields that get localized per active language (arrays/structure stay base). */
-const LOCALIZABLE_TEXT = new Set(['text', 'cardTitle', 'cardValue', 'cardTitle2', 'cardValue2', 'cardCaption', 'unit', 'toggleLeft', 'toggleRight', 'days']);
+const LOCALIZABLE_TEXT = new Set(['text', 'cardTitle', 'cardValue', 'cardTitle2', 'cardValue2', 'cardCaption', 'unit', 'toggleLeft', 'toggleRight', 'days', 'dates', 'yTicks']);
 
 /**
  * The single-component inspector. Shows only the controls that apply to the
@@ -230,10 +230,10 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
   const box = sel.kind === 'shape' || sel.kind === 'card';
   return (
     <div className="space-y-3">
-      {(sel.kind === 'shape' || sel.kind === 'card' || sel.kind === 'heatmap' || sel.kind === 'datestrip' || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'streak' || sel.kind === 'blur') && (
+      {(sel.kind === 'shape' || sel.kind === 'card' || sel.kind === 'heatmap' || sel.kind === 'datestrip' || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'streak' || sel.kind === 'blur' || sel.kind === 'segmented' || sel.kind === 'statrow' || sel.kind === 'usagechart' || sel.kind === 'approw') && (
         <Slider label="Width" value={sel.w || 200} min={40} max={380} suffix="px" onChange={(v) => update({ w: v })} />
       )}
-      {(box || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'blur' || (sel.kind === 'heatmap' && sel.framed)) && (
+      {(box || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'blur' || sel.kind === 'usagechart' || (sel.kind === 'heatmap' && sel.framed)) && (
         <Slider label="Height" value={sel.h || 120} min={40} max={460} suffix="px" onChange={(v) => update({ h: v })} />
       )}
       {box && (
@@ -779,6 +779,125 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
           <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="Q,S,S,D,S,T" />
           <TextField value={sel.dates || ''} onChange={(v) => update({ dates: v })} placeholder="28,29,30,31,1,2" />
           <Slider label="Highlight" value={sel.activeIndex ?? 5} min={0} max={9} onChange={(v) => update({ activeIndex: v })} />
+        </>
+      )}
+
+      {sel.kind === 'segmented' && (
+        <>
+          <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="Month,Week,Day" />
+          <Slider label="Highlight" value={sel.activeIndex ?? 0} min={0} max={5} onChange={(v) => update({ activeIndex: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Height" value={sel.h || 32} min={22} max={60} suffix="px" onChange={(v) => update({ h: v })} />
+            <Slider label="Radius" value={sel.radius ?? 16} min={0} max={30} onChange={(v) => update({ radius: v })} />
+          </div>
+          <Slider label="Text size" value={sel.fontSize || 11} min={8} max={20} suffix="px" onChange={(v) => update({ fontSize: v })} />
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Track</div>
+              <ColorPicker color={sel.bg || '#2A2A2C'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Active</div>
+              <ColorPicker color={sel.accent || '#F4F2ED'} onChange={(c) => update({ accent: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Ink</div>
+              <ColorPicker color={sel.color || '#F4F2ED'} onChange={(c) => update({ color: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Comma-separated labels; Highlight picks the active segment.</p>
+        </>
+      )}
+
+      {sel.kind === 'statrow' && (
+        <>
+          <TextField value={sel.dates || ''} onChange={(v) => update({ dates: v })} placeholder="2h 17m,54,51" />
+          <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="SCREEN TIME,PICKUPS,NOTIFICATIONS" />
+          <Slider label="Value size" value={sel.fontSize || 14} min={9} max={40} suffix="px" onChange={(v) => update({ fontSize: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            {(['left', 'center'] as const).map((a) => (
+              <button key={a} onClick={() => update({ align: a })} className={`px-2 py-2 rounded-md border text-xs ${(sel.align || 'left') === a ? 'border-norte-primary bg-norte-primary-light text-norte-primary' : 'border-border-default bg-overlay text-secondary'}`}>
+                {a === 'left' ? 'Packed' : 'Spread'}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Values</div>
+              <ColorPicker color={sel.color || '#F4F2ED'} onChange={(c) => update({ color: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Labels</div>
+              <ColorPicker color={sel.accent || '#A8A49C'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Comma-separated values and labels — one column each.</p>
+        </>
+      )}
+
+      {sel.kind === 'usagechart' && (
+        <>
+          <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="Sun,Mon,Tue,Wed,Thu,Fri,Sat" />
+          <TextField value={sel.dates || ''} onChange={(v) => update({ dates: v })} placeholder="1.4,1.5,1.1,0.9,0.8,1.4,1.6" />
+          <div className="grid grid-cols-2 gap-2">
+            <TextField value={sel.unit || ''} onChange={(v) => update({ unit: v })} placeholder="Unit (h)" />
+            <TextField value={sel.yTicks || ''} onChange={(v) => update({ yTicks: v })} placeholder="0m,1h,2h" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Y max" value={sel.yMax || 0} min={0} max={24} step={0.5} onChange={(v) => update({ yMax: v })} />
+            <Slider label="Highlight" value={sel.activeIndex ?? 6} min={0} max={11} onChange={(v) => update({ activeIndex: v })} />
+          </div>
+          <Slider label="Radius" value={sel.radius ?? 20} min={0} max={48} onChange={(v) => update({ radius: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Card</div>
+              <ColorPicker color={sel.bg || '#F6F4EF'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Ink</div>
+              <ColorPicker color={sel.color || '#1A1A1A'} onChange={(c) => update({ color: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Bars</div>
+              <ColorPicker color={sel.cell || '#1A1A1A'} onChange={(c) => update({ cell: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Active bar</div>
+              <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Values are numbers (decimals ok) shown with the unit above each bar. Y max sets the scale (0 = fit the tallest bar); axis ticks run bottom → top.</p>
+        </>
+      )}
+
+      {sel.kind === 'approw' && (
+        <>
+          <BrandPicker value={sel.icon} onChange={(id) => update({ icon: id })} />
+          <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="YouTube" />
+          <div className="grid grid-cols-2 gap-2">
+            <TextField value={sel.cardValue || ''} onChange={(v) => update({ cardValue: v })} placeholder="33m 59s" />
+            <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="1 pickups · 0 notifications" />
+          </div>
+          <Slider label="Progress" value={Math.round((sel.fill ?? 0.8) * 100)} min={0} max={100} suffix="%" onChange={(v) => update({ fill: v / 100 })} />
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Height" value={sel.h || 56} min={36} max={120} suffix="px" onChange={(v) => update({ h: v })} />
+            <Slider label="Radius" value={sel.radius ?? 12} min={0} max={40} onChange={(v) => update({ radius: v })} />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Card</div>
+              <ColorPicker color={sel.bg || '#242427'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Ink</div>
+              <ColorPicker color={sel.color || '#F4F2ED'} onChange={(c) => update({ color: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Bar</div>
+              <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Double-click the row on the canvas to edit the app name.</p>
         </>
       )}
 

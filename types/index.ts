@@ -130,7 +130,7 @@ export interface HabitHeroConfig {
   exploded?: boolean;
 }
 
-export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget' | 'press' | 'app';
+export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget' | 'press' | 'app' | 'segmented' | 'statrow' | 'usagechart' | 'approw';
 
 /** Glyph inside the corner badge of a tile (emoji / icon / app). */
 export type BadgeGlyph = 'check' | 'lock' | 'hourglass';
@@ -259,6 +259,11 @@ export interface SlideElement {
   // press ("as seen in" row of publication wordmarks)
   // `text` = comma-separated names (TechCrunch, USA TODAY, Forbes, …) · `fontSize` = logo height · `color` = ink.
   // Known names get their signature monochrome treatment; anything else renders as bold caps. Not localized.
+
+  // segmented (iOS-style segmented control): `days` = comma-separated labels · `activeIndex` · `bg` track · `accent` active pill · `color` label ink · `fontSize`
+  // statrow (row of value/label columns): `dates` = values · `days` = labels · `fontSize` value size · `color` values · `accent` labels · `align` left = packed, center = spread
+  // usagechart (bars per day with y-axis): `days` labels · `dates` numeric values · `unit` suffix · `yTicks` bottom→top · `yMax` scale · `activeIndex` · `bg` card · `cell` bar · `accent` active bar · `color` ink
+  // approw (app usage row): `icon` brand · `text` name · `cardValue` time · `cardCaption` meta · `fill` progress 0–1 · `bg` · `color` ink · `accent` bar
 
   // datestrip / charts
   /** Comma-separated x/day labels, e.g. "Q,S,S,D,S,T" or "FEV,MAR,ABR,MAI,JUN". */

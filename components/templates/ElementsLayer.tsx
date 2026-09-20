@@ -517,6 +517,61 @@ function BarChartCard({ el, sf, rtl }: { el: SlideElement; sf: number; rtl?: boo
   );
 }
 
+/** Weekly usage bars — value labels above, day labels below, y-axis ticks + gridlines at the right. */
+function UsageChartCard({ el, sf, rtl }: { el: SlideElement; sf: number; rtl?: boolean }) {
+  const w = (el.w || 320) * sf;
+  const h = (el.h || 200) * sf;
+  const u = sf * ((el.w || 320) / 320); // width-proportional unit
+  const labels = (el.days || '').split(',').map((s) => s.trim());
+  const values = (el.dates || '').split(',').map((s) => parseFloat(s) || 0);
+  const n = Math.max(labels.length, values.length, 1);
+  const ai = el.activeIndex ?? n - 1;
+  const ticks = (el.yTicks || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const maxV = Math.max(el.yMax || 0, ...values, 0.0001);
+  const ink = el.color || '#1A1A1A';
+  const bar = el.cell || '#1A1A1A';
+  const active = el.accent || '#E8923C';
+  const unit = el.unit ?? '';
+  const padX = 18 * u;
+  const padTop = 18 * u;
+  const padBottom = 14 * u;
+  const axisW = ticks.length ? 30 * u : 0;
+  const valueBlock = 16 * u; // value label above each bar
+  const labelBlock = 18 * u; // day label below
+  const plotH = h - padTop - padBottom - valueBlock - labelBlock;
+  const plotW = w - padX * 2 - axisW;
+  const plotTop = padTop + valueBlock;
+  const slot = plotW / n;
+  const barW = slot * 0.5;
+  const muted = hexToRgba(ink, 0.55);
+  return (
+    <div style={{ position: 'relative', width: w, height: h, background: el.bg || '#F6F4EF', borderRadius: (el.radius ?? 20) * sf, fontFamily: fontFamilyFor('Sora'), overflow: 'hidden', direction: rtl ? 'rtl' : undefined }}>
+      {ticks.map((t, i) => {
+        const y = plotTop + plotH * (1 - i / Math.max(1, ticks.length - 1));
+        return (
+          <React.Fragment key={`t${i}`}>
+            <div style={{ position: 'absolute', left: padX, width: plotW, top: y, height: 1, background: hexToRgba(ink, 0.12) }} />
+            <div style={{ position: 'absolute', left: padX + plotW + 8 * u, top: y, transform: 'translateY(-50%)', fontFamily: MONO, fontSize: 9 * u, color: muted, whiteSpace: 'nowrap' }}>{t}</div>
+          </React.Fragment>
+        );
+      })}
+      {Array.from({ length: n }).map((_, i) => {
+        const on = i === ai;
+        const v = values[i] || 0;
+        const bh = Math.max(3 * u, plotH * (v / maxV));
+        const cx = padX + slot * i + slot / 2;
+        return (
+          <React.Fragment key={`b${i}`}>
+            <div style={{ position: 'absolute', left: cx, top: plotTop + plotH - bh - 4 * u, transform: 'translate(-50%, -100%)', fontFamily: MONO, fontSize: 9 * u, fontWeight: on ? 700 : 500, color: on ? ink : muted, whiteSpace: 'nowrap' }}>{rtl ? arNum(v) : v}{unit}</div>
+            <div style={{ position: 'absolute', left: cx - barW / 2, top: plotTop + plotH - bh, width: barW, height: bh, background: on ? active : bar, borderRadius: `${barW * 0.3}px ${barW * 0.3}px ${barW * 0.12}px ${barW * 0.12}px` }} />
+            <div style={{ position: 'absolute', left: cx, top: plotTop + plotH + 6 * u, transform: 'translateX(-50%)', fontFamily: MONO, fontSize: 10 * u, fontWeight: on ? 700 : 500, color: on ? ink : muted, whiteSpace: 'nowrap' }}>{labels[i] || ''}</div>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Smooth cubic path through points with horizontal control tangents. */
 function smoothPath(pts: { x: number; y: number }[]): string {
   if (pts.length === 0) return '';
@@ -1126,6 +1181,74 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
                   })}
                 </div>
                 )}
+              </div>
+            );
+          } else if (el.kind === 'segmented') {
+            const sw = (el.w || 246) * sf;
+            const sh = (el.h || 32) * sf;
+            const u = sf * ((el.w || 246) / 246);
+            const labels = (el.days || '').split(',').map((s) => s.trim()).filter(Boolean);
+            const ai = el.activeIndex ?? 0;
+            const track = el.bg || '#2A2A2C';
+            const pill = el.accent || '#F4F2ED';
+            const ink = el.color || '#F4F2ED';
+            const activeInk = readableTextColor(pill);
+            const r = (el.radius ?? 16) * sf;
+            content = (
+              <div style={{ display: 'flex', width: sw, height: sh, background: track, borderRadius: r, padding: 3 * u, boxSizing: 'border-box', fontFamily: fam, direction: rtl ? 'rtl' : undefined }}>
+                {labels.map((label, i) => {
+                  const on = i === ai;
+                  return (
+                    <div key={i} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: (el.fontSize || 11) * u, fontWeight: on ? 800 : 600, color: on ? activeInk : ink, opacity: on ? 1 : 0.7, background: on ? pill : 'transparent', borderRadius: Math.max(0, r - 3 * u), boxShadow: on ? '0 1px 4px rgba(0,0,0,0.18)' : undefined, whiteSpace: 'nowrap' }}>{label}</div>
+                  );
+                })}
+              </div>
+            );
+          } else if (el.kind === 'statrow') {
+            const sw = (el.w || 214) * sf;
+            const u = sf * ((el.w || 214) / 214);
+            const values = (el.dates || '').split(',').map((s) => s.trim());
+            const labels = (el.days || '').split(',').map((s) => s.trim());
+            const n = Math.max(values.length, labels.length);
+            const ink = el.color || '#F4F2ED';
+            const sub = el.accent || '#A8A49C';
+            const spread = el.align === 'center';
+            content = (
+              <div style={{ display: 'flex', width: sw, gap: spread ? 0 : 24 * u, justifyContent: spread ? 'space-around' : 'flex-start', fontFamily: fam, direction: rtl ? 'rtl' : undefined }}>
+                {Array.from({ length: n }).map((_, i) => (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3 * u, minWidth: 0 }}>
+                    <span style={{ fontSize: (el.fontSize || 14) * u, fontWeight: 800, color: ink, lineHeight: 1, whiteSpace: 'nowrap', letterSpacing: rtl ? 'normal' : '-0.01em' }}>{values[i] || ''}</span>
+                    <span style={{ fontFamily: MONO, fontSize: 7.5 * u, fontWeight: 700, letterSpacing: rtl ? 'normal' : '0.08em', textTransform: 'uppercase', color: sub, whiteSpace: 'nowrap' }}>{labels[i] || ''}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          } else if (el.kind === 'usagechart') {
+            content = <UsageChartCard el={el} sf={sf} rtl={rtl} />;
+          } else if (el.kind === 'approw') {
+            const rw = (el.w || 246) * sf;
+            const rh = (el.h || 56) * sf;
+            const u = sf * ((el.w || 246) / 246);
+            const ink = el.color || '#F4F2ED';
+            const fillPct = Math.max(0, Math.min(1, el.fill ?? 0.8));
+            const name = resolveElementText(el, language);
+            content = (
+              <div style={{ width: rw, minHeight: rh, background: el.bg || '#242427', borderRadius: (el.radius ?? 12) * sf, padding: `${9 * u}px ${12 * u}px`, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 5 * u, fontFamily: fam, direction: rtl ? 'rtl' : undefined }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 * u }}>
+                  <AppIcon brand={el.icon || 'youtube'} size={18 * u} radius={5 * u} />
+                  {editing ? (
+                    <EditingBox value={name} onChange={(v) => onTextChange?.(el.id, v)} onDone={() => onEditEnd?.()} style={{ fontFamily: fam, fontSize: 12 * u, fontWeight: 700, color: ink }} />
+                  ) : (
+                    <span style={{ fontSize: 12 * u, fontWeight: 700, color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 * u }}>
+                  <div style={{ flex: 1, height: 4 * u, borderRadius: 999, background: hexToRgba(ink, 0.14), overflow: 'hidden' }}>
+                    <div style={{ width: `${fillPct * 100}%`, height: '100%', background: el.accent || '#E8923C', borderRadius: 999 }} />
+                  </div>
+                  {el.cardValue && <span style={{ fontFamily: MONO, fontSize: 9.5 * u, fontWeight: 600, color: ink, whiteSpace: 'nowrap' }}>{el.cardValue}</span>}
+                </div>
+                {el.cardCaption && <span style={{ fontFamily: MONO, fontSize: 8 * u, letterSpacing: rtl ? 'normal' : '0.02em', color: hexToRgba(ink, 0.55), whiteSpace: 'nowrap' }}>{el.cardCaption}</span>}
               </div>
             );
           } else if (el.kind === 'press') {

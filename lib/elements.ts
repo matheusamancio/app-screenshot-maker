@@ -72,6 +72,10 @@ export function kindLabel(kind: SlideElement['kind']): string {
     case 'widget': return 'Widget';
     case 'press': return 'Press logos';
     case 'app': return 'App icon';
+    case 'segmented': return 'Segmented control';
+    case 'statrow': return 'Stats row';
+    case 'usagechart': return 'Usage chart';
+    case 'approw': return 'App usage row';
     default: return 'Component';
   }
 }
@@ -242,4 +246,25 @@ export function newLineChart(x = 195, y = 470): SlideElement {
       { label: 'Vitamina D', color: '#C4AE7A', values: [null, null, 4, 12, 20] },
     ],
   };
+}
+/** iOS-style segmented control — comma-separated labels, one highlighted (dark variant). */
+export function newSegmented(x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'segmented', w: 246, h: 32, radius: 16, days: 'Month,Week,Day', activeIndex: 1, bg: '#2A2A2C', accent: '#F4F2ED', color: '#F4F2ED', fontSize: 11 };
+}
+/** Row of value/label columns (e.g. "2h 17m · SCREEN TIME"), dark variant. */
+export function newStatRow(x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'statrow', w: 214, dates: '2h 17m,54,51', days: 'SCREEN TIME,PICKUPS,NOTIFICATIONS', fontSize: 14, color: '#F4F2ED', accent: '#A8A49C', align: 'left' };
+}
+/** Bars per day with the value above each bar and a y-axis at the right (screen-time style), light card. */
+export function newUsageChart(x = 195, y = 460): SlideElement {
+  return {
+    ...base(x, y), kind: 'usagechart', w: 320, h: 200, radius: 20,
+    bg: '#F6F4EF', cell: '#1A1A1A', accent: '#E8923C', color: '#1A1A1A',
+    days: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat', dates: '1.4,1.5,1.1,0.9,0.8,1.4,1.6', unit: 'h',
+    yTicks: '0m,1h,2h', yMax: 2, activeIndex: 6, shadow: 26,
+  };
+}
+/** App usage row — brand icon + name, progress bar with the time, meta line (dark variant). */
+export function newAppRow(x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'approw', w: 246, h: 56, radius: 12, bg: '#242427', color: '#F4F2ED', accent: '#E8923C', icon: 'youtube', text: 'YouTube', cardValue: '33m 59s', cardCaption: '1 pickups · 0 notifications', fill: 0.86 };
 }

@@ -25,6 +25,10 @@ import {
   newLaurelEl,
   newPressLogos,
   newAppIcon,
+  newSegmented,
+  newStatRow,
+  newUsageChart,
+  newAppRow,
   newDateStrip,
   newStreakWidget,
   newStatCard,
@@ -124,6 +128,10 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
     { label: 'Stars', make: () => newStarsEl() },
     { label: 'Laurel rating', make: () => newLaurelEl() },
     { label: 'Press logos', make: () => newPressLogos() },
+    { label: 'Segmented control', make: () => newSegmented() },
+    { label: 'Stats row', make: () => newStatRow() },
+    { label: 'Usage chart', make: () => newUsageChart() },
+    { label: 'App usage row', make: () => newAppRow() },
   ];
   const ICONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play', 'chevron-left', 'chevron-right'];
 
