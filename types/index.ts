@@ -184,6 +184,8 @@ export interface SlideElement {
 
   // app (brand app-icon tile — YouTube, Instagram, TikTok, …)
   // `icon` = brand id from APP_BRANDS · `size` · `radius` (defaults to 22% of size) · `check`/`badge`/`accent` = corner badge
+  /** Blurred halo of the icon drawn behind the tile (baseline px of blur; 0 / undefined = none) — the "blocked app" look. */
+  glow?: number;
 
   // box-based components (shape / heatmap / card / stars / datestrip)
   /** Box size in baseline px. */

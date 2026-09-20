@@ -205,6 +205,27 @@ function BadgePicker({ value, onChange }: { value?: BadgeGlyph; onChange: (b: Ba
 
 const ICON_OPTIONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play'];
 
+/** Grid of brand tiles (YouTube, Instagram, …, Norte) used by the App icon and App usage row inspectors. */
+function BrandPicker({ value, onChange }: { value?: string; onChange: (id: string) => void }) {
+  return (
+    <div>
+      <div className="section-label mb-1.5">App</div>
+      <div className="grid grid-cols-5 gap-1.5">
+        {APP_BRANDS.map((b) => (
+          <button
+            key={b.id}
+            onClick={() => onChange(b.id)}
+            title={b.label}
+            className={`aspect-square rounded-md border flex items-center justify-center ${(value || 'youtube') === b.id ? 'border-norte-primary bg-norte-primary-light' : 'border-border-default bg-overlay'}`}
+          >
+            <AppIcon brand={b.id} size={26} radius={6} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: Partial<SlideElement>) => void }) {
   const box = sel.kind === 'shape' || sel.kind === 'card';
   return (
@@ -458,23 +479,10 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
 
       {sel.kind === 'app' && (
         <>
-          <div>
-            <div className="section-label mb-1.5">App</div>
-            <div className="grid grid-cols-5 gap-1.5">
-              {APP_BRANDS.map((b) => (
-                <button
-                  key={b.id}
-                  onClick={() => update({ icon: b.id })}
-                  title={b.label}
-                  className={`aspect-square rounded-md border flex items-center justify-center ${(sel.icon || 'youtube') === b.id ? 'border-norte-primary bg-norte-primary-light' : 'border-border-default bg-overlay'}`}
-                >
-                  <AppIcon brand={b.id} size={26} radius={6} />
-                </button>
-              ))}
-            </div>
-          </div>
+          <BrandPicker value={sel.icon} onChange={(id) => update({ icon: id })} />
           <Slider label="Size" value={sel.size || 96} min={40} max={200} suffix="px" onChange={(v) => update({ size: v })} />
           <Slider label="Corner radius" value={sel.radius ?? Math.round((sel.size || 96) * 0.22)} min={0} max={Math.round((sel.size || 96) / 2)} suffix="px" onChange={(v) => update({ radius: v })} />
+          <Slider label="Glow" value={sel.glow || 0} min={0} max={40} suffix="px" onChange={(v) => update({ glow: v })} />
           <label className="flex items-center justify-between gap-2 px-1">
             <span className="section-label">Corner badge</span>
             <Toggle on={!!sel.check} onToggle={() => update({ check: !sel.check })} />

@@ -929,9 +929,17 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
           } else if (el.kind === 'app') {
             const ts = (el.size || 96) * sf;
             const radius = (el.radius ?? Math.round((el.size || 96) * 0.22)) * sf;
+            const glow = (el.glow || 0) * sf;
             content = (
-              <div style={{ position: 'relative', width: ts, height: ts, borderRadius: radius, boxShadow: '0 10px 24px rgba(0,0,0,0.18)' }}>
-                <AppIcon brand={el.icon || 'youtube'} size={ts} radius={radius} />
+              <div style={{ position: 'relative', width: ts, height: ts, borderRadius: radius, boxShadow: glow > 0 ? undefined : '0 10px 24px rgba(0,0,0,0.18)' }}>
+                {glow > 0 && (
+                  <div aria-hidden style={{ position: 'absolute', inset: 0, transform: 'scale(1.12)', filter: `blur(${glow}px)`, opacity: 0.85 }}>
+                    <AppIcon brand={el.icon || 'youtube'} size={ts} radius={radius} />
+                  </div>
+                )}
+                <div style={{ position: 'relative' }}>
+                  <AppIcon brand={el.icon || 'youtube'} size={ts} radius={radius} />
+                </div>
                 {el.check && <CheckBadge size={Math.min(ts * 0.36, 36 * sf)} color={el.accent || '#111111'} glyph={el.badge} />}
               </div>
             );
