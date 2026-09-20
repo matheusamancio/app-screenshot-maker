@@ -542,7 +542,7 @@ function UsageChartCard({ el, sf, rtl }: { el: SlideElement; sf: number; rtl?: b
   const plotW = w - padX * 2 - axisW;
   const plotTop = padTop + valueBlock;
   const slot = plotW / n;
-  const barW = slot * 0.5;
+  const barW = slot * 0.56;
   const muted = hexToRgba(ink, 0.55);
   return (
     <div style={{ position: 'relative', width: w, height: h, background: el.bg || '#F6F4EF', borderRadius: (el.radius ?? 20) * sf, fontFamily: fontFamilyFor('Sora'), overflow: 'hidden', direction: rtl ? 'rtl' : undefined }}>
