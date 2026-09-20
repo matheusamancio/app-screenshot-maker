@@ -3,27 +3,31 @@
 import React from 'react';
 
 /**
- * App-icon tiles for the "blocked apps" wall — hand-drawn vector marks on the
- * brand's tile colour (no bitmap assets). Used by the `app` element, the Elements
- * panel and the inspector's brand picker.
+ * App-icon tiles for the "blocked apps" wall — the real icon PNGs from
+ * public/apps (hand-drawn vector marks as the fallback for brands without an
+ * asset). Used by the `app` element, the Elements panel and the inspector's
+ * brand picker.
  */
 export interface AppBrand {
   id: string;
   label: string;
-  /** CSS background of the tile (solid colour or gradient). */
+  /** CSS background of the tile (solid colour or gradient) — also the fallback behind the SVG mark. */
   bg: string;
+  /** Real icon artwork (public URL, square PNG with the rounded shape baked in). Rendered instead of the SVG mark when present. */
+  image?: string;
 }
 
 export const APP_BRANDS: AppBrand[] = [
-  { id: 'youtube', label: 'YouTube', bg: '#FF0000' },
-  { id: 'instagram', label: 'Instagram', bg: 'linear-gradient(45deg, #F9CE34 0%, #EE2A7B 50%, #6228D7 100%)' },
-  { id: 'tiktok', label: 'TikTok', bg: '#000000' },
-  { id: 'snapchat', label: 'Snapchat', bg: '#FFFC00' },
-  { id: 'x', label: 'X', bg: '#000000' },
-  { id: 'threads', label: 'Threads', bg: '#000000' },
-  { id: 'netflix', label: 'Netflix', bg: '#000000' },
-  { id: 'whatsapp', label: 'WhatsApp', bg: '#25D366' },
+  { id: 'youtube', label: 'YouTube', bg: '#FF0000', image: '/apps/youtube.png' },
+  { id: 'instagram', label: 'Instagram', bg: 'linear-gradient(45deg, #F9CE34 0%, #EE2A7B 50%, #6228D7 100%)', image: '/apps/instagram.png' },
+  { id: 'tiktok', label: 'TikTok', bg: '#000000', image: '/apps/tiktok.png' },
+  { id: 'snapchat', label: 'Snapchat', bg: '#FFFC00', image: '/apps/snapchat.png' },
+  { id: 'x', label: 'X', bg: '#000000', image: '/apps/x.png' },
+  { id: 'threads', label: 'Threads', bg: '#000000', image: '/apps/threads.png' },
+  { id: 'netflix', label: 'Netflix', bg: '#000000', image: '/apps/netflix.png' },
+  { id: 'whatsapp', label: 'WhatsApp', bg: '#25D366', image: '/apps/whatsapp.png' },
   { id: 'facebook', label: 'Facebook', bg: '#1877F2' },
+  { id: 'norte', label: 'Norte', bg: '#1A1A1A', image: '/apps/norte.png' },
 ];
 
 export function brandOf(id?: string): AppBrand {
@@ -111,12 +115,17 @@ function Mark({ brand }: { brand: string }) {
   }
 }
 
-/** A brand tile: rounded square in the brand colour with its mark centred. */
+/** A brand tile: the real icon PNG when the brand has one, otherwise a rounded square in the brand colour with its mark centred. */
 export default function AppIcon({ brand, size, radius, style }: { brand: string; size: number; radius: number; style?: React.CSSProperties }) {
   const b = brandOf(brand);
   return (
-    <div style={{ width: size, height: size, borderRadius: radius, background: b.bg, overflow: 'hidden', flexShrink: 0, ...style }}>
-      <Mark brand={b.id} />
+    <div style={{ width: size, height: size, borderRadius: radius, background: b.image ? 'transparent' : b.bg, overflow: 'hidden', flexShrink: 0, ...style }}>
+      {b.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={b.image} alt="" draggable={false} style={{ width: size, height: size, display: 'block', objectFit: 'cover', pointerEvents: 'none' }} />
+      ) : (
+        <Mark brand={b.id} />
+      )}
     </div>
   );
 }
