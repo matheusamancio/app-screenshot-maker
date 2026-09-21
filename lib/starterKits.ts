@@ -352,7 +352,7 @@ export function norteBlockedElements(): RawEl[] {
     tile('tiktok', 350, 268, 70, 12),
     tile('youtube', 38, 522, 58, 9),
     tile('x', 354, 604, 54, -10),
-    { kind: 'text', x: 195, y: 38, rotation: 0, scale: 1, text: 'APP BLOCKING', fontFamily: 'JetBrains Mono', fontSize: 10, fontWeight: 600, letterSpacing: 0.18, color: '#6f6c66', align: 'center', width: 340 },
+    { kind: 'text', x: 195, y: 36, rotation: 0, scale: 1, text: 'APP BLOCKING', fontFamily: 'JetBrains Mono', fontSize: 10, fontWeight: 600, letterSpacing: 0.18, color: '#6f6c66', align: 'center', width: 340 },
     { kind: 'text', x: 195, y: 152, rotation: 0, scale: 1, text: 'One rule. Set once, kept every day.', fontSize: 14, fontWeight: 500, color: '#6f6c66', align: 'center', width: 340 },
     { kind: 'text', x: 195, y: 92, rotation: 0, scale: 1, text: '[Blocks] the apps\nyou keep opening.', fontSize: 36, fontWeight: 800, color: '#1a1a1a', align: 'center', width: 370 },
   ];
@@ -383,19 +383,19 @@ export function norteScreenTimeElements(): RawEl[] {
     T(195, 372, 'This Week', 13, 700, INK_ON_DARK, 150, 'center'),
     chip('chevron-right', 306, 372, 22),
     // summary card (grouped so it moves as one)
-    T(195, 404, 'SUMMARY', 9, 700, MUTED_ON_DARK, 246),
-    { kind: 'shape', shapeType: 'rect', x: 195, y: 456, w: 246, h: 118, radius: 16, bg: DARK_SURFACE, opacity: 1, rotation: 0, scale: 1, groupId: summary },
-    T(195, 414, 'May 25, 2025 – May 31, 2025', 10, 500, MUTED_ON_DARK, 214, 'left', summary),
-    T(195, 438, '1h 9m', 26, 800, INK_ON_DARK, 214, 'left', summary),
-    T(195, 458, 'DAILY AVERAGE', 8, 700, MUTED_ON_DARK, 214, 'left', summary),
-    { kind: 'statrow', x: 195, y: 490, w: 214, dates: '2h 17m,54,51', days: 'SCREEN TIME,PICKUPS,NOTIFICATIONS', fontSize: 14, color: INK_ON_DARK, accent: MUTED_ON_DARK, align: 'left', rotation: 0, scale: 1, groupId: summary },
+    T(195, 393, 'SUMMARY', 9, 700, MUTED_ON_DARK, 246),
+    { kind: 'shape', shapeType: 'rect', x: 195, y: 462, w: 246, h: 118, radius: 16, bg: DARK_SURFACE, opacity: 1, rotation: 0, scale: 1, groupId: summary },
+    T(195, 420, 'May 25, 2025 – May 31, 2025', 10, 500, MUTED_ON_DARK, 214, 'left', summary),
+    T(195, 446, '1h 9m', 26, 800, INK_ON_DARK, 214, 'left', summary),
+    T(195, 469, 'DAILY AVERAGE', 8, 700, MUTED_ON_DARK, 214, 'left', summary),
+    { kind: 'statrow', x: 195, y: 498, w: 214, dates: '2h 17m,54,51', days: 'SCREEN TIME,PICKUPS,NOTIFICATIONS', fontSize: 14, color: INK_ON_DARK, accent: MUTED_ON_DARK, align: 'left', rotation: 0, scale: 1, groupId: summary },
     // the chart pops out of the phone (wider than the screen, floating shadow)
-    { kind: 'usagechart', x: 195, y: 620, w: 320, h: 200, radius: 20, bg: '#F6F4EF', cell: '#1A1A1A', accent: '#E8923C', color: '#1A1A1A', days: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat', dates: '1.4,1.5,1.1,0.9,0.8,1.4,1.6', unit: 'h', yTicks: '0m,1h,2h', yMax: 2, activeIndex: 6, shadow: 26, rotation: 0, scale: 1 },
+    { kind: 'usagechart', x: 195, y: 628, w: 320, h: 200, radius: 20, bg: '#F6F4EF', cell: '#1A1A1A', accent: '#E8923C', color: '#1A1A1A', days: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat', dates: '1.4,1.5,1.1,0.9,0.8,1.4,1.6', unit: 'h', yTicks: '0m,1h,2h', yMax: 2, activeIndex: 6, shadow: 26, rotation: 0, scale: 1 },
     // most screen time
-    T(195, 746, 'MOST SCREEN TIME', 9, 700, MUTED_ON_DARK, 246),
-    { kind: 'approw', x: 195, y: 784, w: 246, h: 56, radius: 12, bg: DARK_SURFACE, color: INK_ON_DARK, accent: '#E8923C', icon: 'youtube', text: 'YouTube', cardValue: '33m 59s', cardCaption: '1 pickups · 0 notifications', fill: 0.86, rotation: 0, scale: 1 },
+    T(195, 753, 'MOST SCREEN TIME', 9, 700, MUTED_ON_DARK, 246),
+    { kind: 'approw', x: 195, y: 790, w: 246, h: 56, radius: 12, bg: DARK_SURFACE, color: INK_ON_DARK, accent: '#E8923C', icon: 'youtube', text: 'YouTube', cardValue: '33m 59s', cardCaption: '1 pickups · 0 notifications', fill: 0.86, rotation: 0, scale: 1 },
     // headline block
-    { kind: 'text', x: 195, y: 38, rotation: 0, scale: 1, text: 'ANALYTICS', fontFamily: 'JetBrains Mono', fontSize: 10, fontWeight: 600, letterSpacing: 0.18, color: '#6f6c66', align: 'center', width: 340 },
+    { kind: 'text', x: 195, y: 36, rotation: 0, scale: 1, text: 'ANALYTICS', fontFamily: 'JetBrains Mono', fontSize: 10, fontWeight: 600, letterSpacing: 0.18, color: '#6f6c66', align: 'center', width: 340 },
     T(195, 152, 'Screen time, pickups and notifications at a glance.', 14, 500, '#6f6c66', 340, 'center'),
     T(195, 92, '[Track]\nScreen Time', 36, 800, '#1a1a1a', 370, 'center'),
   ];
@@ -431,7 +431,7 @@ const NORTE_REVIEW_CARDS: { x: number; y: number; w: number; h: number; quote: s
   { x: 290, y: 366, w: 140, h: 120, quote: 'Not doomscrolling anymore. I love this app.', author: 'Marcus' },
   // row 3: short left, medium right (columns stagger, nothing overlaps)
   { x: 100, y: 516, w: 140, h: 120, quote: 'Shocked how well the blocking works.', author: 'Jenna' },
-  { x: 270, y: 516, w: 180, h: 152, quote: "I got my life back. The block kicks in every time I scroll, and I don't wanna fight it.", author: 'Chammmee' },
+  { x: 270, y: 528, w: 180, h: 152, quote: "I got my life back. The block kicks in every time I scroll, and I don't wanna fight it.", author: 'Chammmee' },
 ];
 export function norteReviewsElements(): RawEl[] {
   const wall = 'norte-reviews-wall';
@@ -445,7 +445,7 @@ export function norteReviewsElements(): RawEl[] {
     { kind: 'laurel', x: 282, y: 650, rotation: 0, scale: 1, size: 44, color: '#1A1A1A', cardValue: '100%', cardCaption: 'On your phone', fontSize: 20, cols: 0 },
     { kind: 'button', x: 195, y: 728, rotation: 0, scale: 1, text: 'Get Norte — Free', showArrow: true, bg: '#1A1A1A', color: '#F4F2ED', fontSize: 15, radius: 24, h: 48 },
     { kind: 'text', x: 195, y: 770, rotation: 0, scale: 1, text: 'Free to start · No account needed', fontSize: 10, fontWeight: 500, color: '#A8A49C', align: 'center', width: 300 },
-    { kind: 'text', x: 195, y: 38, rotation: 0, scale: 1, text: 'WHAT PEOPLE SAY', fontFamily: 'JetBrains Mono', fontSize: 10, fontWeight: 600, letterSpacing: 0.18, color: '#6f6c66', align: 'center', width: 340 },
+    { kind: 'text', x: 195, y: 36, rotation: 0, scale: 1, text: 'WHAT PEOPLE SAY', fontFamily: 'JetBrains Mono', fontSize: 10, fontWeight: 600, letterSpacing: 0.18, color: '#6f6c66', align: 'center', width: 340 },
     { kind: 'text', x: 195, y: 152, rotation: 0, scale: 1, text: 'What people say after a week with Norte.', fontSize: 14, fontWeight: 500, color: '#6f6c66', align: 'center', width: 340 },
     { kind: 'text', x: 195, y: 92, rotation: 0, scale: 1, text: '[Real] people,\nreal results', fontSize: 36, fontWeight: 800, color: '#1a1a1a', align: 'center', width: 370 },
   ];
@@ -473,7 +473,7 @@ const TX = (x: number, y: number, text: string, fontSize: number, fontWeight: nu
   ({ kind: 'text', x, y, rotation: 0, scale: 1, text, fontSize, fontWeight, color, align, width, ...(groupId ? { groupId } : {}) });
 /** Kicker + pill headline + subline at the top of a story screen. */
 const HEAD = (kicker: string, headline: string, subline: string): RawEl[] => [
-  K(195, 38, kicker, '#6f6c66'),
+  K(195, 36, kicker, '#6f6c66'),
   TX(195, 152, subline, 14, 500, '#6f6c66', 340),
   TX(195, 92, headline, 36, 800, '#1a1a1a', 370),
 ];
@@ -491,7 +491,7 @@ export function norteDistractionsElements(): RawEl[] {
     { kind: 'shape', shapeType: 'rect', x: 195, y: 452, w: 116, h: 116, radius: 28, bg: DARK_CHIP, opacity: 1, rotation: 0, scale: 1 },
     { kind: 'app', icon: 'whatsapp', x: 195, y: 452, size: 74, radius: 17, check: false, rotation: 0, scale: 1 },
     TX(195, 532, 'WhatsApp', 20, 800, INK_ON_DARK, 240),
-    TX(195, 556, '10h 14m this week', 11, 600, '#E8923C', 240),
+    TX(195, 559, '10h 14m this week', 11, 600, '#E8923C', 240),
     K(195, 594, 'NEXT IN LINE', MUTED_ON_DARK, 240, 'center', 8.5),
     { kind: 'appstrip', x: 195, y: 640, apps: 'instagram,youtube,tiktok,norte,netflix', dates: '6h,5h,1h,1h,1h', days: '1,0,0,0,1', accent: '#8FA88A', size: 36, radius: 10, bg: DARK_CHIP, color: MUTED_ON_DARK, rotation: 0, scale: 1 },
     { kind: 'shape', shapeType: 'circle', x: 137, y: 694, w: 6, h: 6, radius: 0, bg: '#8FA88A', opacity: 1, rotation: 0, scale: 1 },
@@ -527,17 +527,17 @@ export function norteProtectElements(): RawEl[] {
     { kind: 'shape', shapeType: 'rect', x: 195, y: 486, w: 240, h: 296, radius: 18, bg: '#1A1A1A', opacity: 1, rotation: 0, scale: 1, groupId: card },
     K(195, 362, 'YOUR FOCUS', MUTED_ON_DARK, 208, 'left', 8.5, card),
     TX(195, 402, '65h', 40, 800, INK_ON_DARK, 208, 'left', card),
-    TX(195, 432, 'Total time your blocks were on', 10, 500, MUTED_ON_DARK, 208, 'left', card),
+    TX(195, 440, 'Total time your blocks were on', 10, 500, MUTED_ON_DARK, 208, 'left', card),
     // stat chips, as in the app's "Your focus" card
-    { kind: 'shape', shapeType: 'rect', x: 144, y: 476, w: 102, h: 46, radius: 12, bg: DARK_CHIP, opacity: 1, rotation: 0, scale: 1, groupId: card },
-    K(146, 466, 'BOOKED THIS WEEK', MUTED_ON_DARK, 84, 'left', 6.5, card),
-    TX(146, 484, '40h', 15, 800, INK_ON_DARK, 84, 'left', card),
-    { kind: 'shape', shapeType: 'rect', x: 248, y: 476, w: 102, h: 46, radius: 12, bg: DARK_CHIP, opacity: 1, rotation: 0, scale: 1, groupId: card },
-    K(250, 466, 'DAY STREAK', MUTED_ON_DARK, 84, 'left', 6.5, card),
-    TX(250, 484, '🔥 7 days', 14, 800, INK_ON_DARK, 84, 'left', card),
+    { kind: 'shape', shapeType: 'rect', x: 140, y: 478, w: 98, h: 46, radius: 12, bg: DARK_CHIP, opacity: 1, rotation: 0, scale: 1, groupId: card },
+    K(142, 468, 'BOOKED THIS WEEK', MUTED_ON_DARK, 84, 'left', 6.5, card),
+    TX(142, 486, '40h', 15, 800, INK_ON_DARK, 84, 'left', card),
+    { kind: 'shape', shapeType: 'rect', x: 250, y: 478, w: 98, h: 46, radius: 12, bg: DARK_CHIP, opacity: 1, rotation: 0, scale: 1, groupId: card },
+    K(252, 468, 'DAY STREAK', MUTED_ON_DARK, 84, 'left', 6.5, card),
+    TX(252, 486, '🔥 7 days', 14, 800, INK_ON_DARK, 84, 'left', card),
     { kind: 'usagechart', x: 195, y: 568, w: 208, h: 108, radius: 0, bg: '#1A1A1A', cell: '#3A3A3C', accent: '#E8923C', color: INK_ON_DARK, days: 'M,T,W,T,F,S,S', dates: '2,11,11,8,12,1,19', unit: 'h', yMax: 19, activeIndex: 6, rotation: 0, scale: 1, groupId: card },
     { kind: 'button', x: 195, y: 690, text: 'Unblock apps', showArrow: true, bg: '#6B6B6B', color: '#FFFFFF', fontSize: 11, radius: 18, h: 36, rotation: 0, scale: 1 },
-    { kind: 'tabbar', x: 195, y: 787, w: 236, h: 50, radius: 25, days: 'Today,Year,Focus,Profile', icon: 'moon,rings,target,user', activeIndex: 2, bg: 'rgba(74,73,70,0.92)', color: '#F4F2ED', accent: '#E8923C', rotation: 0, scale: 1 },
+    { kind: 'tabbar', x: 195, y: 778, w: 226, h: 50, radius: 25, days: 'Today,Year,Focus,Profile', icon: 'moon,rings,target,user', activeIndex: 2, bg: 'rgba(74,73,70,0.92)', color: '#F4F2ED', accent: '#E8923C', rotation: 0, scale: 1 },
     ...HEAD('YOUR RESULTS', '[Protect] your\nfocus', 'See how many hours your blocks kept for you.'),
   ];
 }
@@ -566,7 +566,7 @@ export function norteRulesElements(): RawEl[] {
     { kind: 'button', x: 146, y: 724, text: 'Open report', showArrow: false, bg: '#F4F2ED', color: '#1A1A1A', fontSize: 9.5, radius: 12, h: 24, rotation: 0, scale: 1, groupId: report },
     TX(226, 724, 'Not now', 9.5, 600, MUTED_ON_DARK, 50, 'center', report),
     { kind: 'usagechart', x: 268, y: 664, w: 56, h: 44, radius: 0, bg: '#1A1A1A', cell: '#4A4A4C', accent: '#E8923C', color: INK_ON_DARK, days: '', dates: '1,3,4,4,3,1,6', unit: '', yMax: 6, activeIndex: 6, rotation: 0, scale: 1, groupId: report },
-    { kind: 'tabbar', x: 195, y: 787, w: 236, h: 50, radius: 25, days: 'Today,Year,Focus,Profile', icon: 'moon,rings,target,user', activeIndex: 2, bg: 'rgba(74,73,70,0.92)', color: '#F4F2ED', accent: '#E8923C', rotation: 0, scale: 1 },
+    { kind: 'tabbar', x: 195, y: 778, w: 226, h: 50, radius: 25, days: 'Today,Year,Focus,Profile', icon: 'moon,rings,target,user', activeIndex: 2, bg: 'rgba(74,73,70,0.92)', color: '#F4F2ED', accent: '#E8923C', rotation: 0, scale: 1 },
     ...HEAD('ALWAYS ON', '[Rules] that\nhold the line', "Set it once. Norte keeps it, even when you don't want to."),
   ];
 }
@@ -580,14 +580,15 @@ export function norteTodayElements(): RawEl[] {
     PLUS('#1A1A1A', '#F4F2ED'),
     TX(195, 322, 'Today', 26, 800, '#1A1A1A', 208, 'left'),
     TX(195, 358, '<span style="color:#1a1a1a">4</span> / 10 kept', 24, 800, '#9b9890', 208, 'left'),
-    { kind: 'datestrip', x: 195, y: 412, w: 208, days: 'M,T,W,T,F,S,S', dates: '14,15,16,17,18,19,20', activeIndex: 6, rotation: 0, scale: 1 },
-    K(195, 460, 'HABITS', '#A8A49C', 208, 'left', 8),
-    { kind: 'button', x: 282, y: 460, text: '+ NEW', showArrow: false, bg: '#FFFFFF', color: '#1A1A1A', fontSize: 7.5, radius: 10, h: 20, rotation: 0, scale: 1 },
+    // datestrip renders w/n-wide cells plus 6px gaps → w 172 gives a 208-wide strip aligned with the column
+    { kind: 'datestrip', x: 195, y: 410, w: 172, days: 'M,T,W,T,F,S,S', dates: '14,15,16,17,18,19,20', activeIndex: 6, rotation: 0, scale: 1 },
+    K(195, 452, 'HABITS', '#A8A49C', 208, 'left', 8),
+    { kind: 'button', x: 282, y: 452, text: '+ NEW', showArrow: false, bg: '#FFFFFF', color: '#1A1A1A', fontSize: 7.5, radius: 10, h: 20, rotation: 0, scale: 1 },
     row(498, '📚', 'Bible', '1D · 7%', true),
     row(558, '💊', 'Vitamin D', '7D · 13%', true),
     row(618, '🌿', 'Nature', '4D · 9%', false),
     row(678, '🥛', 'Creatine', '5D · 11%', true),
-    { kind: 'tabbar', x: 195, y: 787, w: 236, h: 50, radius: 25, days: 'Today,Year,Focus,Profile', icon: 'moon,rings,target,user', activeIndex: 0, bg: 'rgba(74,73,70,0.92)', color: '#F4F2ED', accent: '#E8923C', rotation: 0, scale: 1 },
+    { kind: 'tabbar', x: 195, y: 778, w: 226, h: 50, radius: 25, days: 'Today,Year,Focus,Profile', icon: 'moon,rings,target,user', activeIndex: 0, bg: 'rgba(74,73,70,0.92)', color: '#F4F2ED', accent: '#E8923C', rotation: 0, scale: 1 },
     { kind: 'emoji', emoji: '📚', tile: true, check: true, size: 54, x: 42, y: 300, rotation: -10, scale: 1 },
     { kind: 'emoji', emoji: '🥛', tile: true, check: true, size: 50, x: 352, y: 640, rotation: 8, scale: 1 },
     ...HEAD('DAILY CHECK-IN', '[Habits] and focus,\ntogether', 'Check in daily, keep streaks, protect your time.'),
@@ -612,7 +613,7 @@ const norteFocusStory = (): StarterKitSlide[] => [
   NORTE_COVER, NORTE_BLOCKED, NORTE_DISTRACTIONS, NORTE_PATTERNS, NORTE_RULES,
   NORTE_PROTECT, NORTE_SCREEN_TIME, NORTE_TODAY,
   // the main template's privacy screen, with the story's kicker on top
-  { ...NORTE_V2_SLIDES[4], role: 'differentiator', elements: [...(NORTE_V2_SLIDES[4].elements || []), K(195, 38, 'PRIVACY', '#6f6c66')] },
+  { ...NORTE_V2_SLIDES[4], role: 'differentiator', elements: [...(NORTE_V2_SLIDES[4].elements || []), K(195, 36, 'PRIVACY', '#6f6c66')] },
   NORTE_REVIEWS_SLIDE,
 ];
 
