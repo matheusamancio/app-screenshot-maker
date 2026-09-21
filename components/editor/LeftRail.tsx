@@ -32,6 +32,7 @@ import {
   newReviewCard,
   newAppStrip,
   newRuleCard,
+  newTabBar,
   newDateStrip,
   newStreakWidget,
   newStatCard,
@@ -138,6 +139,7 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
     { label: 'Review card', make: () => newReviewCard() },
     { label: 'App strip', make: () => newAppStrip() },
     { label: 'Rule card', make: () => newRuleCard() },
+    { label: 'Tab bar', make: () => newTabBar() },
   ];
   const ICONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play', 'chevron-left', 'chevron-right'];
 

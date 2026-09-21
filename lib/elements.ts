@@ -79,6 +79,7 @@ export function kindLabel(kind: SlideElement['kind']): string {
     case 'review': return 'Review card';
     case 'appstrip': return 'App strip';
     case 'rulecard': return 'Rule card';
+    case 'tabbar': return 'Tab bar';
     default: return 'Component';
   }
 }
@@ -270,6 +271,10 @@ export function newUsageChart(x = 195, y = 460): SlideElement {
 /** Row of app icons on backdrop tiles with a caption under each ("Next in line"), dark variant. */
 export function newAppStrip(x = 195, y = 300): SlideElement {
   return { ...base(x, y), kind: 'appstrip', apps: 'instagram,youtube,tiktok,norte,netflix', dates: '6h,5h,1h,1h,1h', size: 40, radius: 11, bg: '#2A2A2C', color: '#A8A49C' };
+}
+/** Norte bottom tab bar — floating dark pill with icon + tracked label per tab, orange dot on the active one. */
+export function newTabBar(x = 195, y = 780): SlideElement {
+  return { ...base(x, y), kind: 'tabbar', w: 236, h: 52, radius: 26, days: 'Today,Year,Focus,Profile', icon: 'moon,rings,target,user', activeIndex: 2, bg: 'rgba(74,73,70,0.92)', color: '#F4F2ED', accent: '#E8923C' };
 }
 /** Norte focus-rule card — trigger → shield, status pill, name, blocked apps. */
 export function newRuleCard(x = 195, y = 300): SlideElement {

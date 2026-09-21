@@ -58,6 +58,10 @@ function NorteIcon({ name, size, color }: { name: string; size: number; color: s
     case 'play': return (<svg width={size} height={size} viewBox="0 0 24 24" fill={color}><path d="M8 5v14l11-7z" /></svg>);
     case 'chevron-left': return (<svg {...p} strokeWidth={2.6}><polyline points="15 5 8 12 15 19" /></svg>);
     case 'chevron-right': return (<svg {...p} strokeWidth={2.6}><polyline points="9 5 16 12 9 19" /></svg>);
+    case 'moon': return (<svg {...p}><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" /></svg>);
+    case 'rings': return (<svg {...p}><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="3.2" /></svg>);
+    case 'target': return (<svg {...p}><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.6" fill={color} stroke="none" /></svg>);
+    case 'user': return (<svg {...p}><circle cx="12" cy="8" r="4" /><path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5" /></svg>);
     default: return (<svg {...p}><circle cx="12" cy="12" r="9" /></svg>);
   }
 }
@@ -1044,10 +1048,18 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
                     <AppIcon brand={el.icon || 'youtube'} size={ts} radius={radius} />
                   </div>
                 )}
-                <div style={{ position: 'relative' }}>
-                  <AppIcon brand={el.icon || 'youtube'} size={ts} radius={radius} />
+                <div style={{ position: 'relative', borderRadius: radius, boxShadow: el.framed ? `0 0 0 ${Math.max(2 * sf, ts * 0.045)}px ${el.accent || '#E8923C'}` : undefined }}>
+                  <AppIcon brand={el.icon || 'youtube'} size={ts} radius={radius} style={el.framed ? { filter: 'saturate(0.6) brightness(0.75)' } : undefined} />
+                  {/* "locked" overlay — dimmed icon with a centre lock, as on Norte's Blocked-now tiles */}
+                  {el.framed && (
+                    <div style={{ position: 'absolute', inset: 0, borderRadius: radius, background: 'rgba(0,0,0,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: ts * 0.44, height: ts * 0.44, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width={ts * 0.24} height={ts * 0.24} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><rect x="4.5" y="10.5" width="15" height="11" rx="2.5" fill="#fff" stroke="none" /><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /></svg>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                {el.check && <CheckBadge size={Math.min(ts * 0.36, 36 * sf)} color={el.accent || '#111111'} glyph={el.badge} />}
+                {el.check && !el.framed && <CheckBadge size={Math.min(ts * 0.36, 36 * sf)} color={el.accent || '#111111'} glyph={el.badge} />}
               </div>
             );
           } else if (el.kind === 'button') {
@@ -1284,34 +1296,38 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
               </div>
             );
           } else if (el.kind === 'review') {
+            // Typography is absolute (baseline px), not width-proportional, so narrow cards in a
+            // masonry wall stay readable and simply wrap more.
             const rw = (el.w || 250) * sf;
-            const u = sf * ((el.w || 250) / 250);
             const ink = el.color || '#1A1A1A';
             const stars = Math.min(5, Math.max(0, el.cols ?? 5));
             const quote = resolveElementText(el, language);
-            const quoteStyle: React.CSSProperties = { fontFamily: fam, fontSize: (el.fontSize || 12.5) * u, fontWeight: 600, color: ink, lineHeight: 1.3, letterSpacing: rtl ? 'normal' : '-0.01em', direction: rtl ? 'rtl' : undefined, whiteSpace: 'pre-wrap', textAlign: 'center' };
+            const quoteStyle: React.CSSProperties = { fontFamily: fam, fontSize: (el.fontSize || 12.5) * sf, fontWeight: 600, color: ink, lineHeight: 1.3, letterSpacing: rtl ? 'normal' : '-0.01em', direction: rtl ? 'rtl' : undefined, whiteSpace: 'pre-wrap', textAlign: el.align === 'left' ? 'left' : 'center', width: '100%' };
+            const alignItems = el.align === 'left' ? 'flex-start' : 'center';
             content = (
-              <div style={{ width: rw, minHeight: (el.h || 0) * sf, background: el.bg || '#FFFFFF', borderRadius: (el.radius ?? 18) * sf, padding: `${14 * u}px ${16 * u}px`, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7 * u, boxShadow: '0 10px 24px rgba(0,0,0,0.10)' }}>
-                {stars > 0 && <StarsRow n={stars} size={16 * u} color={el.accent || '#E8923C'} />}
+              <div style={{ width: rw, minHeight: (el.h || 0) * sf, background: el.bg || '#FFFFFF', borderRadius: (el.radius ?? 18) * sf, padding: `${14 * sf}px ${16 * sf}px`, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems, justifyContent: 'center', gap: 7 * sf, boxShadow: '0 10px 24px rgba(0,0,0,0.10)' }}>
+                {stars > 0 && <StarsRow n={stars} size={15 * sf} color={el.accent || '#E8923C'} />}
                 {editing ? (
                   <EditingBox value={quote} onChange={(v) => onTextChange?.(el.id, v)} onDone={() => onEditEnd?.()} style={{ ...quoteStyle, minWidth: rw * 0.6 }} />
                 ) : (
                   <div style={quoteStyle}>{quote}</div>
                 )}
-                {el.cardTitle && <div style={{ fontFamily: fam, fontSize: 12 * u, fontWeight: 800, color: ink, marginTop: 1 * u, direction: rtl ? 'rtl' : undefined }}>{el.cardTitle}</div>}
+                {el.cardTitle && <div style={{ fontFamily: fam, fontSize: 11.5 * sf, fontWeight: 800, color: hexToRgba(ink, 0.8), marginTop: 1 * sf, direction: rtl ? 'rtl' : undefined }}>{el.cardTitle}</div>}
               </div>
             );
           } else if (el.kind === 'appstrip') {
             const ids = (el.apps || '').split(',').map((s) => s.trim()).filter(Boolean);
             const caps = (el.dates || '').split(',').map((s) => s.trim());
+            const flags = (el.days || '').split(',').map((s) => s.trim());
             const size = (el.size || 40) * sf;
             const tileR = (el.radius ?? Math.round((el.size || 40) * 0.28)) * sf;
             content = (
               <div style={{ display: 'flex', gap: size * 0.3, alignItems: 'flex-start', fontFamily: fam, direction: rtl ? 'rtl' : undefined }}>
                 {ids.map((id, i) => (
                   <div key={`${id}-${i}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: size * 0.16 }}>
-                    <div style={{ width: size, height: size, borderRadius: tileR, background: el.bg || '#2A2A2C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ position: 'relative', width: size, height: size, borderRadius: tileR, background: el.bg || '#2A2A2C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <AppIcon brand={id} size={size * 0.58} radius={size * 0.13} />
+                      {flags[i] === '1' && <div style={{ position: 'absolute', top: -size * 0.08, right: -size * 0.08, width: size * 0.2, height: size * 0.2, borderRadius: '50%', background: el.accent || '#8FA88A' }} />}
                     </div>
                     {caps[i] && <span style={{ fontFamily: MONO, fontSize: Math.max(7 * sf, size * 0.22), color: el.color || '#A8A49C', whiteSpace: 'nowrap' }}>{caps[i]}</span>}
                   </div>
@@ -1351,6 +1367,29 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
                     ))}
                   </div>
                 </div>
+              </div>
+            );
+          } else if (el.kind === 'tabbar') {
+            const tw = (el.w || 236) * sf;
+            const th = (el.h || 52) * sf;
+            const u = sf * ((el.w || 236) / 236);
+            const labels = (el.days || '').split(',').map((s) => s.trim());
+            const icons = (el.icon || '').split(',').map((s) => s.trim());
+            const n = Math.max(labels.length, icons.length, 1);
+            const ai = el.activeIndex ?? 0;
+            const ink = el.color || '#F4F2ED';
+            content = (
+              <div style={{ display: 'flex', width: tw, height: th, borderRadius: (el.radius ?? 26) * sf, background: el.bg || 'rgba(74,73,70,0.92)', boxShadow: '0 8px 24px rgba(0,0,0,0.18)', padding: `0 ${6 * u}px`, boxSizing: 'border-box', fontFamily: fam, direction: rtl ? 'rtl' : undefined }}>
+                {Array.from({ length: n }).map((_, i) => {
+                  const on = i === ai;
+                  return (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3 * u, opacity: on ? 1 : 0.72, position: 'relative' }}>
+                      <NorteIcon name={icons[i] || 'rings'} size={13 * u} color={ink} />
+                      <span style={{ fontFamily: MONO, fontSize: 6.5 * u, letterSpacing: rtl ? 'normal' : '0.14em', textTransform: 'uppercase', color: ink, whiteSpace: 'nowrap' }}>{labels[i] || ''}</span>
+                      {on && <div style={{ position: 'absolute', bottom: 3 * u, width: 4 * u, height: 4 * u, borderRadius: '50%', background: el.accent || '#E8923C' }} />}
+                    </div>
+                  );
+                })}
               </div>
             );
           } else if (el.kind === 'press') {

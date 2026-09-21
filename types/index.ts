@@ -130,7 +130,7 @@ export interface HabitHeroConfig {
   exploded?: boolean;
 }
 
-export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget' | 'press' | 'app' | 'segmented' | 'statrow' | 'usagechart' | 'approw' | 'review' | 'appstrip' | 'rulecard';
+export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget' | 'press' | 'app' | 'segmented' | 'statrow' | 'usagechart' | 'approw' | 'review' | 'appstrip' | 'rulecard' | 'tabbar';
 
 /** Glyph inside the corner badge of a tile (emoji / icon / app). */
 export type BadgeGlyph = 'check' | 'lock' | 'hourglass';
@@ -269,6 +269,8 @@ export interface SlideElement {
   // review (App Store testimonial card): `text` quote · `cardTitle` author · `cols` stars 0–5 · `accent` star colour · `bg` card · `color` ink · `fontSize` quote size · `w` · `h` (min height) · `radius`
   // appstrip (row of app icons on backdrop tiles with captions): `apps` brand ids CSV · `dates` captions CSV · `size` tile · `radius` · `bg` backdrop · `color` caption ink
   // rulecard (Norte focus rule): `icon` trigger glyph (hourglass | calendar | clock) · `check` active · `cardTitle` status pill · `text` name · `cardCaption` "Block" label · `apps` blocked brand ids CSV · `bg` · `color` ink · `accent`
+  // tabbar (Norte bottom tab bar): `days` labels CSV · `icon` glyph names CSV (moon, rings, target, user, …) · `activeIndex` · `bg` pill · `color` ink · `accent` active dot · `w` · `h` · `radius`
+  // app `framed` = "locked" overlay (dimmed icon, centre lock, ring in `accent`) · appstrip `days` = per-tile "1"/"0" flags for the small "already in a rule" dot (colour `accent`)
   /** Comma-separated brand ids from APP_BRANDS (appstrip tiles, rulecard blocked apps). */
   apps?: string;
 
