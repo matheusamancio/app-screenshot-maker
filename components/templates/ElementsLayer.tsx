@@ -90,6 +90,21 @@ function StatusIcons({ height, color }: { height: number; color: string }) {
   );
 }
 
+/** Trigger glyph of a focus rule — hourglass (time keeper), calendar (schedule) or clock. */
+function RuleGlyph({ name, size, color }: { name: string; size: number; color: string }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  switch (name) {
+    case 'calendar': return (<svg {...p}><rect x="3.5" y="5" width="17" height="15.5" rx="3" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>);
+    case 'clock': return (<svg {...p}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>);
+    default: return (<svg {...p}><path d="M6.5 3.5h11M6.5 20.5h11M8 3.5c0 5 4 6 4 8.5s-4 3.5-4 8.5M16 3.5c0 5-4 6-4 8.5s4 3.5 4 8.5" /></svg>);
+  }
+}
+
+/** Filled shield — the "protected" mark on a rule card. */
+function ShieldGlyph({ size, color }: { size: number; color: string }) {
+  return (<svg width={size} height={size} viewBox="0 0 24 24" fill={color}><path d="M12 2.5 4.5 5.4v6.1c0 4.6 3.1 8.6 7.5 10 4.4-1.4 7.5-5.4 7.5-10V5.4z" /></svg>);
+}
+
 /** Monochrome wordmark for one publication (known names get a recognizable treatment, others bold caps). */
 function PressLogo({ name, size, color, fam }: { name: string; size: number; color: string; fam: string }) {
   const key = name.toLowerCase().replace(/[^a-z]/g, '');
@@ -524,7 +539,11 @@ function UsageChartCard({ el, sf, rtl }: { el: SlideElement; sf: number; rtl?: b
   const u = sf * ((el.w || 320) / 320); // width-proportional unit
   const labels = (el.days || '').split(',').map((s) => s.trim());
   const values = (el.dates || '').split(',').map((s) => parseFloat(s) || 0);
-  const n = Math.max(labels.length, values.length, 1);
+  const axisLabels = labels.filter(Boolean);
+  // Axis mode: fewer labels than bars (e.g. 24 hourly bars with "00,12,00") — the labels
+  // spread along a baseline, per-bar value labels are hidden and the bars get denser.
+  const axisMode = axisLabels.length < values.length;
+  const n = Math.max(axisMode ? values.length : Math.max(labels.length, values.length), 1);
   const ai = el.activeIndex ?? n - 1;
   const ticks = (el.yTicks || '').split(',').map((s) => s.trim()).filter(Boolean);
   const maxV = Math.max(el.yMax || 0, ...values, 0.0001);
@@ -536,13 +555,13 @@ function UsageChartCard({ el, sf, rtl }: { el: SlideElement; sf: number; rtl?: b
   const padTop = 18 * u;
   const padBottom = 14 * u;
   const axisW = ticks.length ? 30 * u : 0;
-  const valueBlock = 16 * u; // value label above each bar
-  const labelBlock = 18 * u; // day label below
+  const valueBlock = axisMode ? 0 : 16 * u; // value label above each bar
+  const labelBlock = axisMode ? (axisLabels.length ? 18 * u : 0) : 18 * u; // day / axis labels below
   const plotH = h - padTop - padBottom - valueBlock - labelBlock;
   const plotW = w - padX * 2 - axisW;
   const plotTop = padTop + valueBlock;
   const slot = plotW / n;
-  const barW = slot * 0.56;
+  const barW = slot * (axisMode ? 0.62 : 0.56);
   const muted = hexToRgba(ink, 0.55);
   return (
     <div style={{ position: 'relative', width: w, height: h, background: el.bg || '#F6F4EF', borderRadius: (el.radius ?? 20) * sf, fontFamily: fontFamilyFor('Sora'), overflow: 'hidden', direction: rtl ? 'rtl' : undefined }}>
@@ -555,6 +574,21 @@ function UsageChartCard({ el, sf, rtl }: { el: SlideElement; sf: number; rtl?: b
           </React.Fragment>
         );
       })}
+      {axisMode && (
+        <>
+          <div style={{ position: 'absolute', left: padX, width: plotW, top: plotTop + plotH, height: 1, background: hexToRgba(ink, 0.18) }} />
+          {axisLabels.map((t, i) => {
+            const f = axisLabels.length > 1 ? i / (axisLabels.length - 1) : 0.5;
+            const tx = f === 0 ? '0' : f === 1 ? '-100%' : '-50%';
+            return (
+              <React.Fragment key={`a${i}`}>
+                <div style={{ position: 'absolute', left: padX + plotW * f, top: plotTop + plotH, width: 1, height: 5 * u, background: hexToRgba(ink, 0.35) }} />
+                <div style={{ position: 'absolute', left: padX + plotW * f, top: plotTop + plotH + 8 * u, transform: `translateX(${tx})`, fontFamily: MONO, fontSize: 10 * u, color: muted, whiteSpace: 'nowrap' }}>{t}</div>
+              </React.Fragment>
+            );
+          })}
+        </>
+      )}
       {Array.from({ length: n }).map((_, i) => {
         const on = i === ai;
         const v = values[i] || 0;
@@ -562,9 +596,9 @@ function UsageChartCard({ el, sf, rtl }: { el: SlideElement; sf: number; rtl?: b
         const cx = padX + slot * i + slot / 2;
         return (
           <React.Fragment key={`b${i}`}>
-            <div style={{ position: 'absolute', left: cx, top: plotTop + plotH - bh - 4 * u, transform: 'translate(-50%, -100%)', fontFamily: MONO, fontSize: 9 * u, fontWeight: on ? 700 : 500, color: on ? ink : muted, whiteSpace: 'nowrap' }}>{rtl ? arNum(v) : v}{unit}</div>
+            {!axisMode && <div style={{ position: 'absolute', left: cx, top: plotTop + plotH - bh - 4 * u, transform: 'translate(-50%, -100%)', fontFamily: MONO, fontSize: 9 * u, fontWeight: on ? 700 : 500, color: on ? ink : muted, whiteSpace: 'nowrap' }}>{rtl ? arNum(v) : v}{unit}</div>}
             <div style={{ position: 'absolute', left: cx - barW / 2, top: plotTop + plotH - bh, width: barW, height: bh, background: on ? active : bar, borderRadius: `${barW * 0.3}px ${barW * 0.3}px ${barW * 0.12}px ${barW * 0.12}px` }} />
-            <div style={{ position: 'absolute', left: cx, top: plotTop + plotH + 6 * u, transform: 'translateX(-50%)', fontFamily: MONO, fontSize: 10 * u, fontWeight: on ? 700 : 500, color: on ? ink : muted, whiteSpace: 'nowrap' }}>{labels[i] || ''}</div>
+            {!axisMode && <div style={{ position: 'absolute', left: cx, top: plotTop + plotH + 6 * u, transform: 'translateX(-50%)', fontFamily: MONO, fontSize: 10 * u, fontWeight: on ? 700 : 500, color: on ? ink : muted, whiteSpace: 'nowrap' }}>{labels[i] || ''}</div>}
           </React.Fragment>
         );
       })}
@@ -1018,7 +1052,7 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
             );
           } else if (el.kind === 'button') {
             content = (
-              <div style={{ display: 'inline-flex', flexDirection: rtl ? 'row-reverse' : 'row', alignItems: 'center', gap: 10 * sf, height: (el.h || 56) * sf, padding: `0 ${30 * sf}px`, background: el.bg || '#1A1A1A', color: el.color || '#F4F2ED', borderRadius: (el.radius ?? 28) * sf, fontFamily: fam, fontSize: (el.fontSize || 17) * sf, fontWeight: 700, boxShadow: '0 8px 20px rgba(0,0,0,0.16)', whiteSpace: 'nowrap' }}>
+              <div style={{ display: 'inline-flex', flexDirection: rtl ? 'row-reverse' : 'row', alignItems: 'center', gap: 10 * sf, height: (el.h || 56) * sf, padding: `0 ${Math.min(30, (el.fontSize || 17) * 1.8) * sf}px`, background: el.bg || '#1A1A1A', color: el.color || '#F4F2ED', borderRadius: (el.radius ?? 28) * sf, fontFamily: fam, fontSize: (el.fontSize || 17) * sf, fontWeight: 700, boxShadow: '0 8px 20px rgba(0,0,0,0.16)', whiteSpace: 'nowrap' }}>
                 {editing ? (
                   <EditingBox value={el.text || ''} onChange={(v) => onTextChange?.(el.id, v)} onDone={() => onEditEnd?.()} style={{ fontFamily: fam, fontSize: (el.fontSize || 17) * sf, fontWeight: 700, color: el.color || '#F4F2ED' }} />
                 ) : (
@@ -1267,6 +1301,58 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
                 {el.cardTitle && <div style={{ fontFamily: fam, fontSize: 12 * u, fontWeight: 800, color: ink, marginTop: 1 * u, direction: rtl ? 'rtl' : undefined }}>{el.cardTitle}</div>}
               </div>
             );
+          } else if (el.kind === 'appstrip') {
+            const ids = (el.apps || '').split(',').map((s) => s.trim()).filter(Boolean);
+            const caps = (el.dates || '').split(',').map((s) => s.trim());
+            const size = (el.size || 40) * sf;
+            const tileR = (el.radius ?? Math.round((el.size || 40) * 0.28)) * sf;
+            content = (
+              <div style={{ display: 'flex', gap: size * 0.3, alignItems: 'flex-start', fontFamily: fam, direction: rtl ? 'rtl' : undefined }}>
+                {ids.map((id, i) => (
+                  <div key={`${id}-${i}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: size * 0.16 }}>
+                    <div style={{ width: size, height: size, borderRadius: tileR, background: el.bg || '#2A2A2C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <AppIcon brand={id} size={size * 0.58} radius={size * 0.13} />
+                    </div>
+                    {caps[i] && <span style={{ fontFamily: MONO, fontSize: Math.max(7 * sf, size * 0.22), color: el.color || '#A8A49C', whiteSpace: 'nowrap' }}>{caps[i]}</span>}
+                  </div>
+                ))}
+              </div>
+            );
+          } else if (el.kind === 'rulecard') {
+            const rw = (el.w || 150) * sf;
+            const u = sf * ((el.w || 150) / 150);
+            const on = !!el.check;
+            const ink = el.color || '#1A1A1A';
+            const accent = el.accent || '#E8923C';
+            const apps = (el.apps || '').split(',').map((s) => s.trim()).filter(Boolean);
+            const name = resolveElementText(el, language);
+            content = (
+              <div style={{ width: rw, minHeight: (el.h || 0) * sf, background: el.bg || '#F6F4EF', borderRadius: (el.radius ?? 16) * sf, padding: 12 * u, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 8 * u, fontFamily: fam, boxShadow: `inset 0 0 0 ${1 * sf}px ${hexToRgba(ink, 0.06)}`, direction: rtl ? 'rtl' : undefined }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 * u }}>
+                  <div style={{ width: 24 * u, height: 24 * u, borderRadius: 7 * u, background: hexToRgba(ink, 0.06), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <RuleGlyph name={el.icon || 'hourglass'} size={13 * u} color={ink} />
+                  </div>
+                  <span style={{ fontSize: 11 * u, color: hexToRgba(ink, 0.35) }}>{rtl ? '←' : '→'}</span>
+                  <ShieldGlyph size={16 * u} color={on ? accent : hexToRgba(ink, 0.22)} />
+                </div>
+                {el.cardTitle && (
+                  <div style={{ alignSelf: 'flex-start', fontFamily: MONO, fontSize: 8.5 * u, padding: `${3 * u}px ${8 * u}px`, borderRadius: 999, background: on ? hexToRgba(accent, 0.2) : hexToRgba(ink, 0.07), color: on ? '#B4551A' : hexToRgba(ink, 0.6), whiteSpace: 'nowrap' }}>{el.cardTitle}</div>
+                )}
+                {editing ? (
+                  <EditingBox value={name} onChange={(v) => onTextChange?.(el.id, v)} onDone={() => onEditEnd?.()} style={{ fontFamily: fam, fontSize: 13 * u, fontWeight: 800, color: ink }} />
+                ) : (
+                  <div style={{ fontSize: 13 * u, fontWeight: 800, color: ink, letterSpacing: rtl ? 'normal' : '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 * u }}>
+                  {el.cardCaption && <span style={{ fontSize: 10 * u, color: hexToRgba(ink, 0.55) }}>{el.cardCaption}</span>}
+                  <div style={{ display: 'flex' }}>
+                    {apps.map((id, i) => (
+                      <div key={`${id}-${i}`} style={{ marginLeft: i ? -4 * u : 0 }}><AppIcon brand={id} size={16 * u} radius={4 * u} /></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
           } else if (el.kind === 'press') {
             const logoSize = (el.fontSize || 14) * sf;
             const names = resolveElementText(el, language).split(',').map((s) => s.trim()).filter(Boolean);
@@ -1371,7 +1457,7 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
           width: el.width ? el.width * sf : undefined,
           // Arabic letters must stay cursively joined — letter-spacing breaks the
           // shaping — and rtl direction keeps periods/commas on the correct side.
-          letterSpacing: rtl ? 'normal' : '-0.01em',
+          letterSpacing: rtl ? 'normal' : `${el.letterSpacing ?? -0.01}em`,
           direction: rtl ? 'rtl' : undefined,
         };
         const shown = resolveElementText(el, language);

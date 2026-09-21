@@ -130,7 +130,7 @@ export interface HabitHeroConfig {
   exploded?: boolean;
 }
 
-export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget' | 'press' | 'app' | 'segmented' | 'statrow' | 'usagechart' | 'approw' | 'review';
+export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget' | 'press' | 'app' | 'segmented' | 'statrow' | 'usagechart' | 'approw' | 'review' | 'appstrip' | 'rulecard';
 
 /** Glyph inside the corner badge of a tile (emoji / icon / app). */
 export type BadgeGlyph = 'check' | 'lock' | 'hourglass';
@@ -169,6 +169,8 @@ export interface SlideElement {
   fontFamily?: string;
   /** Text box width in baseline px (auto when omitted). */
   width?: number;
+  /** Letter-spacing in em (e.g. 0.18 for a tracked mono kicker). Defaults to a tight -0.01. */
+  letterSpacing?: number;
   /** Per-language text overrides, keyed by field path (e.g. `text`, `cardTitle`, `items.0.name`). */
   loc?: Partial<Record<Language, Record<string, string>>>;
   // emoji
@@ -265,6 +267,10 @@ export interface SlideElement {
   // usagechart (bars per day with y-axis): `days` labels · `dates` numeric values · `unit` suffix · `yTicks` bottom→top · `yMax` scale · `activeIndex` · `bg` card · `cell` bar · `accent` active bar · `color` ink
   // approw (app usage row): `icon` brand · `text` name · `cardValue` time · `cardCaption` meta · `fill` progress 0–1 · `bg` · `color` ink · `accent` bar
   // review (App Store testimonial card): `text` quote · `cardTitle` author · `cols` stars 0–5 · `accent` star colour · `bg` card · `color` ink · `fontSize` quote size · `w` · `h` (min height) · `radius`
+  // appstrip (row of app icons on backdrop tiles with captions): `apps` brand ids CSV · `dates` captions CSV · `size` tile · `radius` · `bg` backdrop · `color` caption ink
+  // rulecard (Norte focus rule): `icon` trigger glyph (hourglass | calendar | clock) · `check` active · `cardTitle` status pill · `text` name · `cardCaption` "Block" label · `apps` blocked brand ids CSV · `bg` · `color` ink · `accent`
+  /** Comma-separated brand ids from APP_BRANDS (appstrip tiles, rulecard blocked apps). */
+  apps?: string;
 
   // datestrip / charts
   /** Comma-separated x/day labels, e.g. "Q,S,S,D,S,T" or "FEV,MAR,ABR,MAI,JUN". */

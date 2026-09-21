@@ -30,6 +30,8 @@ import {
   newUsageChart,
   newAppRow,
   newReviewCard,
+  newAppStrip,
+  newRuleCard,
   newDateStrip,
   newStreakWidget,
   newStatCard,
@@ -134,6 +136,8 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
     { label: 'Usage chart', make: () => newUsageChart() },
     { label: 'App usage row', make: () => newAppRow() },
     { label: 'Review card', make: () => newReviewCard() },
+    { label: 'App strip', make: () => newAppStrip() },
+    { label: 'Rule card', make: () => newRuleCard() },
   ];
   const ICONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play', 'chevron-left', 'chevron-right'];
 

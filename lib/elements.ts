@@ -77,6 +77,8 @@ export function kindLabel(kind: SlideElement['kind']): string {
     case 'usagechart': return 'Usage chart';
     case 'approw': return 'App usage row';
     case 'review': return 'Review card';
+    case 'appstrip': return 'App strip';
+    case 'rulecard': return 'Rule card';
     default: return 'Component';
   }
 }
@@ -264,6 +266,14 @@ export function newUsageChart(x = 195, y = 460): SlideElement {
     days: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat', dates: '1.4,1.5,1.1,0.9,0.8,1.4,1.6', unit: 'h',
     yTicks: '0m,1h,2h', yMax: 2, activeIndex: 6, shadow: 26,
   };
+}
+/** Row of app icons on backdrop tiles with a caption under each ("Next in line"), dark variant. */
+export function newAppStrip(x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'appstrip', apps: 'instagram,youtube,tiktok,norte,netflix', dates: '6h,5h,1h,1h,1h', size: 40, radius: 11, bg: '#2A2A2C', color: '#A8A49C' };
+}
+/** Norte focus-rule card — trigger → shield, status pill, name, blocked apps. */
+export function newRuleCard(x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'rulecard', w: 150, h: 160, radius: 16, bg: '#F6F4EF', color: '#1A1A1A', accent: '#E8923C', icon: 'hourglass', check: true, cardTitle: 'Blocked now', text: 'Time Keeper', cardCaption: 'Block', apps: 'instagram,tiktok' };
 }
 /** App Store testimonial card — stars, quote (double-click to edit) and author. */
 export function newReviewCard(x = 195, y = 300): SlideElement {

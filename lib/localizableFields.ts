@@ -37,6 +37,7 @@ const KIND_SHORT: Record<string, string> = {
   linechart: 'Line chart', habitrow: 'Habit', heatmap: 'Heatmap', card: 'Card',
   datestrip: 'Dates', laurel: 'Laurel', button: 'Button', shape: 'Shape', icon: 'Icon', phone: 'Phone',
   segmented: 'Segmented', statrow: 'Stats', usagechart: 'Usage', approw: 'App row', review: 'Review',
+  appstrip: 'App strip', rulecard: 'Rule',
 };
 
 /** Top-level text fields per element kind: [path, friendly name]. */
@@ -60,6 +61,8 @@ const SIMPLE: Record<string, [string, string][]> = {
   usagechart: [['days', 'labels'], ['dates', 'values'], ['yTicks', 'axis'], ['unit', 'unit']],
   approw: [['text', 'app'], ['cardValue', 'time'], ['cardCaption', 'meta']],
   review: [['text', 'quote'], ['cardTitle', 'author']],
+  appstrip: [['dates', 'captions']],
+  rulecard: [['cardTitle', 'status'], ['text', 'name'], ['cardCaption', 'label']],
 };
 
 /** Every translatable text path on one element, with a friendly label. */

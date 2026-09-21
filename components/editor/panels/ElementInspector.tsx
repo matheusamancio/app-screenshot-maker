@@ -127,6 +127,7 @@ function TextEditor({ el, update }: { el: SlideElement; update: (p: Partial<Slid
         className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border-default rounded-md text-secondary resize-none focus:border-norte-primary focus:outline-none"
       />
       <Slider label="Size" value={el.fontSize || 28} min={10} max={72} suffix="px" onChange={(v) => update({ fontSize: v })} />
+      <Slider label="Tracking" value={Math.round((el.letterSpacing ?? -0.01) * 100)} min={-5} max={30} onChange={(v) => update({ letterSpacing: v / 100 })} />
       <div className="grid grid-cols-2 gap-2">
         <div>
           <div className="section-label mb-1.5">Color</div>
@@ -230,7 +231,7 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
   const box = sel.kind === 'shape' || sel.kind === 'card';
   return (
     <div className="space-y-3">
-      {(sel.kind === 'shape' || sel.kind === 'card' || sel.kind === 'heatmap' || sel.kind === 'datestrip' || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'streak' || sel.kind === 'blur' || sel.kind === 'segmented' || sel.kind === 'statrow' || sel.kind === 'usagechart' || sel.kind === 'approw' || sel.kind === 'review') && (
+      {(sel.kind === 'shape' || sel.kind === 'card' || sel.kind === 'heatmap' || sel.kind === 'datestrip' || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'streak' || sel.kind === 'blur' || sel.kind === 'segmented' || sel.kind === 'statrow' || sel.kind === 'usagechart' || sel.kind === 'approw' || sel.kind === 'review' || sel.kind === 'rulecard') && (
         <Slider label="Width" value={sel.w || 200} min={40} max={380} suffix="px" onChange={(v) => update({ w: v })} />
       )}
       {(box || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'blur' || sel.kind === 'usagechart' || (sel.kind === 'heatmap' && sel.framed)) && (
@@ -928,6 +929,69 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
             </div>
           </div>
           <p className="text-[11px] text-text-muted">Double-click the card on the canvas to edit the quote. Min height 0 = fit the text.</p>
+        </>
+      )}
+
+      {sel.kind === 'appstrip' && (
+        <>
+          <TextField value={sel.apps || ''} onChange={(v) => update({ apps: v })} placeholder="instagram,youtube,tiktok,norte,netflix" />
+          <TextField value={sel.dates || ''} onChange={(v) => update({ dates: v })} placeholder="6h,5h,1h,1h,1h" />
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Tile size" value={sel.size || 40} min={20} max={96} suffix="px" onChange={(v) => update({ size: v })} />
+            <Slider label="Radius" value={sel.radius ?? Math.round((sel.size || 40) * 0.28)} min={0} max={48} onChange={(v) => update({ radius: v })} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Backdrop</div>
+              <ColorPicker color={sel.bg || '#2A2A2C'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Captions</div>
+              <ColorPicker color={sel.color || '#A8A49C'} onChange={(c) => update({ color: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Brand ids (youtube, instagram, tiktok, snapchat, x, threads, netflix, whatsapp, facebook, norte) and one caption per icon, comma-separated.</p>
+        </>
+      )}
+
+      {sel.kind === 'rulecard' && (
+        <>
+          <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="Time Keeper" />
+          <div className="grid grid-cols-2 gap-2">
+            <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="Blocked now" />
+            <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Block" />
+          </div>
+          <TextField value={sel.apps || ''} onChange={(v) => update({ apps: v })} placeholder="instagram,tiktok" />
+          <div className="grid grid-cols-3 gap-1.5">
+            {(['hourglass', 'calendar', 'clock'] as const).map((g) => (
+              <button key={g} onClick={() => update({ icon: g })} className={`px-2 py-2 rounded-md border text-xs capitalize ${(sel.icon || 'hourglass') === g ? 'border-norte-primary bg-norte-primary-light text-norte-primary' : 'border-border-default bg-overlay text-secondary'}`}>
+                {g}
+              </button>
+            ))}
+          </div>
+          <label className="flex items-center justify-between gap-2 px-1">
+            <span className="section-label">Active (orange shield + pill)</span>
+            <Toggle on={!!sel.check} onToggle={() => update({ check: !sel.check })} />
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Min height" value={sel.h || 0} min={0} max={300} suffix="px" onChange={(v) => update({ h: v })} />
+            <Slider label="Radius" value={sel.radius ?? 16} min={0} max={40} onChange={(v) => update({ radius: v })} />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Card</div>
+              <ColorPicker color={sel.bg || '#F6F4EF'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Ink</div>
+              <ColorPicker color={sel.color || '#1A1A1A'} onChange={(c) => update({ color: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Accent</div>
+              <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Double-click the card on the canvas to edit the rule name. Blocked apps are brand ids, comma-separated.</p>
         </>
       )}
 
