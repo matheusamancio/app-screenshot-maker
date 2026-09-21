@@ -415,6 +415,51 @@ const NORTE_SCREEN_TIME: StarterKitSlide = {
   elements: norteScreenTimeElements(),
 };
 
+const NORTE_REVIEWS_ROTATION = -6;
+/** [dx, dy, quote, author] — offsets from the wall centre before rotation; staggered rows, side cards bleed off the edges. */
+const NORTE_REVIEWS: [number, number, string, string][] = [
+  [-235, -132, 'Not doomscrolling anymore. I love this app.', 'Marcus'],
+  [0, -132, "I got my life back. The block kicks in every time I scroll, and I don't wanna fight it!!", 'Chammmee'],
+  [235, -132, 'My focus is back. Best purchase this year.', 'Mia K.'],
+  [-60, 0, 'The block screen actually works. My screen time is down 60%.', 'Priya R.'],
+  [200, 0, 'Honestly shocked how well the blocking works.', 'Jenna'],
+  [-200, 132, 'Not quitting anymore. Obsessed with this app.', 'Alexander'],
+  [60, 132, "Finally an app that doesn't let me cheat myself. Saved my evenings.", 'Devon A.'],
+];
+
+/**
+ * Social-proof screen — a tilted, staggered wall of App Store review cards
+ * (stars, quote, author) under a "Join 650K users" headline, with two laurels
+ * at the bottom. Every card is a `review` component; the wall is one group.
+ */
+export function norteReviewsElements(): RawEl[] {
+  const wall = 'norte-reviews-wall';
+  const centres = rotatedGrid(195, 460, 1, NORTE_REVIEWS_ROTATION, NORTE_REVIEWS.map(([dx, dy]) => [dx, dy] as [number, number]));
+  const cards: RawEl[] = NORTE_REVIEWS.map(([, , text, author], i) => ({
+    kind: 'review', x: centres[i].x, y: centres[i].y, w: 240, h: 112, radius: 18, bg: '#FFFFFF', color: '#1A1A1A', accent: '#E8923C',
+    cols: 5, fontSize: 13, text, cardTitle: author, rotation: NORTE_REVIEWS_ROTATION, scale: 1, groupId: wall,
+  }));
+  return [
+    ...cards,
+    { kind: 'laurel', x: 108, y: 738, rotation: 0, scale: 1, size: 50, color: '#1A1A1A', cardValue: '10K+', cardCaption: '5-star reviews', fontSize: 22, cols: 0 },
+    { kind: 'laurel', x: 282, y: 738, rotation: 0, scale: 1, size: 50, color: '#1A1A1A', cardValue: '#1', cardCaption: 'Screen time app', fontSize: 22, cols: 0 },
+    { kind: 'app', icon: 'norte', x: 195, y: 54, size: 48, radius: 11, check: false, rotation: 0, scale: 1 },
+    { kind: 'text', x: 195, y: 184, rotation: 0, scale: 1, text: 'Real reviews from the App Store.', fontSize: 14, fontWeight: 500, color: '#6f6c66', align: 'center', width: 340 },
+    { kind: 'text', x: 195, y: 124, rotation: 0, scale: 1, text: 'Join [650K] users\nsaving their focus', fontSize: 36, fontWeight: 800, color: '#1a1a1a', align: 'center', width: 370 },
+  ];
+}
+
+/** Social-proof screen, placed right before the CTA in the Norte component kits. */
+const NORTE_REVIEWS_SLIDE: StarterKitSlide = {
+  role: 'proof',
+  template: 'hero',
+  title: 'Join 650K users',
+  noChrome: true,
+  elements: norteReviewsElements(),
+};
+/** Insert the reviews screen before the last (CTA) screen of a kit. */
+const withReviewsBeforeCta = (slides: StarterKitSlide[]): StarterKitSlide[] => [...slides.slice(0, -1), NORTE_REVIEWS_SLIDE, slides[slides.length - 1]];
+
 /** Each Norte screen, extracted faithfully from the source HTML then upgraded to use the reusable components. */
 const NORTE_COMPONENTS_SLIDES: StarterKitSlide[] = NORTE_SCREENS.map((elements, i) => ({
   role: NORTE_ROLES[i] || 'secondary',
@@ -441,7 +486,7 @@ export const STARTER_KITS: StarterKit[] = [
     background: { type: 'solid', solidColor: '#EDEBE5' },
     title: { fontFamily: 'Archivo', fontSize: 38, fontWeight: 800, color: '#111111', subtitleColor: '#6B6B6B', subtitleFontSize: 17, alignment: 'center' },
     device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 84 },
-    slides: [NORTE_COVER, NORTE_BLOCKED, NORTE_SCREEN_TIME, ...NORTE_V2_SLIDES],
+    slides: [NORTE_COVER, NORTE_BLOCKED, NORTE_SCREEN_TIME, ...withReviewsBeforeCta(NORTE_V2_SLIDES)],
   },
   {
     id: 'norte-components',
@@ -451,7 +496,7 @@ export const STARTER_KITS: StarterKit[] = [
     background: { type: 'solid', solidColor: '#EDEBE5' },
     title: { fontFamily: 'Archivo', fontSize: 38, fontWeight: 800, color: '#111111', subtitleColor: '#6B6B6B', subtitleFontSize: 17, alignment: 'center' },
     device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 84 },
-    slides: [NORTE_COVER, NORTE_BLOCKED, NORTE_SCREEN_TIME, ...NORTE_COMPONENTS_SLIDES],
+    slides: [NORTE_COVER, NORTE_BLOCKED, NORTE_SCREEN_TIME, ...withReviewsBeforeCta(NORTE_COMPONENTS_SLIDES)],
   },
   {
     id: 'norte-designs',

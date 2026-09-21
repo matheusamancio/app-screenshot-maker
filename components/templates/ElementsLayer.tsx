@@ -1249,6 +1249,24 @@ export default function ElementsLayer({ elements, sf, offsetX = 0, offsetY = 0, 
                 {el.cardCaption && <span style={{ fontFamily: MONO, fontSize: 8 * u, letterSpacing: rtl ? 'normal' : '0.02em', color: hexToRgba(ink, 0.55), whiteSpace: 'nowrap' }}>{el.cardCaption}</span>}
               </div>
             );
+          } else if (el.kind === 'review') {
+            const rw = (el.w || 250) * sf;
+            const u = sf * ((el.w || 250) / 250);
+            const ink = el.color || '#1A1A1A';
+            const stars = Math.min(5, Math.max(0, el.cols ?? 5));
+            const quote = resolveElementText(el, language);
+            const quoteStyle: React.CSSProperties = { fontFamily: fam, fontSize: (el.fontSize || 12.5) * u, fontWeight: 600, color: ink, lineHeight: 1.3, letterSpacing: rtl ? 'normal' : '-0.01em', direction: rtl ? 'rtl' : undefined, whiteSpace: 'pre-wrap', textAlign: 'center' };
+            content = (
+              <div style={{ width: rw, minHeight: (el.h || 0) * sf, background: el.bg || '#FFFFFF', borderRadius: (el.radius ?? 18) * sf, padding: `${14 * u}px ${16 * u}px`, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7 * u, boxShadow: '0 10px 24px rgba(0,0,0,0.10)' }}>
+                {stars > 0 && <StarsRow n={stars} size={16 * u} color={el.accent || '#E8923C'} />}
+                {editing ? (
+                  <EditingBox value={quote} onChange={(v) => onTextChange?.(el.id, v)} onDone={() => onEditEnd?.()} style={{ ...quoteStyle, minWidth: rw * 0.6 }} />
+                ) : (
+                  <div style={quoteStyle}>{quote}</div>
+                )}
+                {el.cardTitle && <div style={{ fontFamily: fam, fontSize: 12 * u, fontWeight: 800, color: ink, marginTop: 1 * u, direction: rtl ? 'rtl' : undefined }}>{el.cardTitle}</div>}
+              </div>
+            );
           } else if (el.kind === 'press') {
             const logoSize = (el.fontSize || 14) * sf;
             const names = resolveElementText(el, language).split(',').map((s) => s.trim()).filter(Boolean);

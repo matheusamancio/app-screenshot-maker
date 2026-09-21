@@ -76,6 +76,7 @@ export function kindLabel(kind: SlideElement['kind']): string {
     case 'statrow': return 'Stats row';
     case 'usagechart': return 'Usage chart';
     case 'approw': return 'App usage row';
+    case 'review': return 'Review card';
     default: return 'Component';
   }
 }
@@ -263,6 +264,10 @@ export function newUsageChart(x = 195, y = 460): SlideElement {
     days: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat', dates: '1.4,1.5,1.1,0.9,0.8,1.4,1.6', unit: 'h',
     yTicks: '0m,1h,2h', yMax: 2, activeIndex: 6, shadow: 26,
   };
+}
+/** App Store testimonial card — stars, quote (double-click to edit) and author. */
+export function newReviewCard(x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'review', w: 250, radius: 18, bg: '#FFFFFF', color: '#1A1A1A', accent: '#E8923C', cols: 5, fontSize: 12.5, text: 'The block screen actually works. My screen time is down 60%.', cardTitle: 'Priya R.' };
 }
 /** App usage row — brand icon + name, progress bar with the time, meta line (dark variant). */
 export function newAppRow(x = 195, y = 300): SlideElement {

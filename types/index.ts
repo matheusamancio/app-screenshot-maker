@@ -130,7 +130,7 @@ export interface HabitHeroConfig {
   exploded?: boolean;
 }
 
-export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget' | 'press' | 'app' | 'segmented' | 'statrow' | 'usagechart' | 'approw';
+export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget' | 'press' | 'app' | 'segmented' | 'statrow' | 'usagechart' | 'approw' | 'review';
 
 /** Glyph inside the corner badge of a tile (emoji / icon / app). */
 export type BadgeGlyph = 'check' | 'lock' | 'hourglass';
@@ -264,6 +264,7 @@ export interface SlideElement {
   // statrow (row of value/label columns): `dates` = values · `days` = labels · `fontSize` value size · `color` values · `accent` labels · `align` left = packed, center = spread
   // usagechart (bars per day with y-axis): `days` labels · `dates` numeric values · `unit` suffix · `yTicks` bottom→top · `yMax` scale · `activeIndex` · `bg` card · `cell` bar · `accent` active bar · `color` ink
   // approw (app usage row): `icon` brand · `text` name · `cardValue` time · `cardCaption` meta · `fill` progress 0–1 · `bg` · `color` ink · `accent` bar
+  // review (App Store testimonial card): `text` quote · `cardTitle` author · `cols` stars 0–5 · `accent` star colour · `bg` card · `color` ink · `fontSize` quote size · `w` · `h` (min height) · `radius`
 
   // datestrip / charts
   /** Comma-separated x/day labels, e.g. "Q,S,S,D,S,T" or "FEV,MAR,ABR,MAI,JUN". */
