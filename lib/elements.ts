@@ -70,6 +70,16 @@ export function kindLabel(kind: SlideElement['kind']): string {
     case 'habitrow': return 'Habit row';
     case 'notification': return 'Notification';
     case 'widget': return 'Widget';
+    case 'press': return 'Press logos';
+    case 'app': return 'App icon';
+    case 'segmented': return 'Segmented control';
+    case 'statrow': return 'Stats row';
+    case 'usagechart': return 'Usage chart';
+    case 'approw': return 'App usage row';
+    case 'review': return 'Review card';
+    case 'appstrip': return 'App strip';
+    case 'rulecard': return 'Rule card';
+    case 'tabbar': return 'Tab bar';
     default: return 'Component';
   }
 }
@@ -111,10 +121,10 @@ export function newHeatmapCard(x = 195, y = 480): SlideElement {
 export function newIconEl(x = 195, y = 400, icon = 'check'): SlideElement {
   return { ...base(x, y), kind: 'icon', w: 40, h: 40, icon, color: '#111111' };
 }
-/** Norte app icon: dark rounded square with the white mountain mark.
+/** Norte app icon: the real logo artwork (public/apps/norte.png) on a rounded tile.
  *  Pass check=true for the orange "completed" badge variant. */
 export function newNorteLogo(x = 195, y = 360, check = false): SlideElement {
-  return { ...base(x, y), kind: 'icon', icon: 'mountain', tile: true, size: 88, radius: 22, bg: '#1A1A1A', color: '#F4F2ED', check, accent: '#E8923C' };
+  return { ...base(x, y), kind: 'app', icon: 'norte', size: 88, radius: 20, check, badge: 'check', accent: '#E8923C' };
 }
 /** Black circular badge with a white padlock (privacy / locked). */
 export function newLockBadge(x = 195, y = 320): SlideElement {
@@ -152,8 +162,17 @@ export function newHabitRow(x = 195, y = 300, emoji = '🏋️', name = 'exercit
 export function newStarsEl(x = 195, y = 400): SlideElement {
   return { ...base(x, y), kind: 'stars', cols: 5, size: 16, color: '#111111' };
 }
+/** Laurel-wreath rating badge: big value + small-caps caption + 5 stars (App Store convention). */
 export function newLaurelEl(x = 195, y = 400): SlideElement {
-  return { ...base(x, y), kind: 'laurel', size: 56, color: '#111111', cardValue: '+38,420', cardCaption: 'Hábitos cumpridos' };
+  return { ...base(x, y), kind: 'laurel', size: 56, color: '#111111', cardValue: '+38,420', cardCaption: 'Hábitos cumpridos', cols: 5 };
+}
+/** Brand app-icon tile (YouTube, Instagram, TikTok, …) with a padlock badge — the "blocked app" sticker. */
+export function newAppIcon(brand = 'youtube', x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'app', icon: brand, size: 96, check: true, badge: 'lock', accent: '#111111' };
+}
+/** "As seen in" row of publication wordmarks — comma-separated names, edited in the right panel. */
+export function newPressLogos(x = 195, y = 262): SlideElement {
+  return { ...base(x, y), kind: 'press', text: 'TechCrunch, USA TODAY, Forbes', fontSize: 14, color: '#1A1A1A' };
 }
 export function newDateStrip(x = 195, y = 280): SlideElement {
   return { ...base(x, y), kind: 'datestrip', w: 320, days: 'Q,S,S,D,S,T', dates: '28,29,30,31,1,2', activeIndex: 5 };
@@ -231,4 +250,41 @@ export function newLineChart(x = 195, y = 470): SlideElement {
       { label: 'Vitamina D', color: '#C4AE7A', values: [null, null, 4, 12, 20] },
     ],
   };
+}
+/** iOS-style segmented control — comma-separated labels, one highlighted (dark variant). */
+export function newSegmented(x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'segmented', w: 246, h: 32, radius: 16, days: 'Month,Week,Day', activeIndex: 1, bg: '#2A2A2C', accent: '#F4F2ED', color: '#F4F2ED', fontSize: 11 };
+}
+/** Row of value/label columns (e.g. "2h 17m · SCREEN TIME"), dark variant. */
+export function newStatRow(x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'statrow', w: 214, dates: '2h 17m,54,51', days: 'SCREEN TIME,PICKUPS,NOTIFICATIONS', fontSize: 14, color: '#F4F2ED', accent: '#A8A49C', align: 'left' };
+}
+/** Bars per day with the value above each bar and a y-axis at the right (screen-time style), light card. */
+export function newUsageChart(x = 195, y = 460): SlideElement {
+  return {
+    ...base(x, y), kind: 'usagechart', w: 320, h: 200, radius: 20,
+    bg: '#F6F4EF', cell: '#1A1A1A', accent: '#E8923C', color: '#1A1A1A',
+    days: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat', dates: '1.4,1.5,1.1,0.9,0.8,1.4,1.6', unit: 'h',
+    yTicks: '0m,1h,2h', yMax: 2, activeIndex: 6, shadow: 26,
+  };
+}
+/** Row of app icons on backdrop tiles with a caption under each ("Next in line"), dark variant. */
+export function newAppStrip(x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'appstrip', apps: 'instagram,youtube,tiktok,norte,netflix', dates: '6h,5h,1h,1h,1h', size: 40, radius: 11, bg: '#2A2A2C', color: '#A8A49C' };
+}
+/** Norte bottom tab bar — floating dark pill with icon + tracked label per tab, orange dot on the active one. */
+export function newTabBar(x = 195, y = 780): SlideElement {
+  return { ...base(x, y), kind: 'tabbar', w: 236, h: 52, radius: 26, days: 'Today,Year,Focus,Profile', icon: 'moon,rings,target,user', activeIndex: 2, bg: 'rgba(74,73,70,0.92)', color: '#F4F2ED', accent: '#E8923C' };
+}
+/** Norte focus-rule card — trigger → shield, status pill, name, blocked apps. */
+export function newRuleCard(x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'rulecard', w: 150, h: 160, radius: 16, bg: '#F6F4EF', color: '#1A1A1A', accent: '#E8923C', icon: 'hourglass', check: true, cardTitle: 'Blocked now', text: 'Time Keeper', cardCaption: 'Block', apps: 'instagram,tiktok' };
+}
+/** App Store testimonial card — stars, quote (double-click to edit) and author. */
+export function newReviewCard(x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'review', w: 250, radius: 18, bg: '#FFFFFF', color: '#1A1A1A', accent: '#E8923C', cols: 5, fontSize: 12.5, text: 'The block screen actually works. My screen time is down 60%.', cardTitle: 'Priya R.' };
+}
+/** App usage row — brand icon + name, progress bar with the time, meta line (dark variant). */
+export function newAppRow(x = 195, y = 300): SlideElement {
+  return { ...base(x, y), kind: 'approw', w: 246, h: 56, radius: 12, bg: '#242427', color: '#F4F2ED', accent: '#E8923C', icon: 'youtube', text: 'YouTube', cardValue: '33m 59s', cardCaption: '1 pickups · 0 notifications', fill: 0.86 };
 }

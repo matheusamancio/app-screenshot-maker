@@ -9,6 +9,7 @@ export type Language =
   | 'en-CA'
   | 'en-AU'
   | 'es-MX'
+  | 'es-ES'
   | 'fr-FR'
   | 'de'
   | 'ja'
@@ -129,7 +130,10 @@ export interface HabitHeroConfig {
   exploded?: boolean;
 }
 
-export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget';
+export type ElementKind = 'text' | 'emoji' | 'shape' | 'heatmap' | 'card' | 'icon' | 'stars' | 'laurel' | 'datestrip' | 'barchart' | 'linechart' | 'streak' | 'button' | 'blur' | 'phone' | 'habitrow' | 'notification' | 'widget' | 'press' | 'app' | 'segmented' | 'statrow' | 'usagechart' | 'approw' | 'review' | 'appstrip' | 'rulecard' | 'tabbar';
+
+/** Glyph inside the corner badge of a tile (emoji / icon / app). */
+export type BadgeGlyph = 'check' | 'lock' | 'hourglass';
 
 /** One row in a 'today' widget (check + emoji + name + meta). */
 export interface WidgetRow {
@@ -165,16 +169,25 @@ export interface SlideElement {
   fontFamily?: string;
   /** Text box width in baseline px (auto when omitted). */
   width?: number;
+  /** Letter-spacing in em (e.g. 0.18 for a tracked mono kicker). Defaults to a tight -0.01. */
+  letterSpacing?: number;
   /** Per-language text overrides, keyed by field path (e.g. `text`, `cardTitle`, `items.0.name`). */
   loc?: Partial<Record<Language, Record<string, string>>>;
   // emoji
   emoji?: string;
   /** Render the emoji on a white rounded tile. */
   tile?: boolean;
-  /** Show the black check badge. */
+  /** Show the corner badge (emoji / icon / app tiles). */
   check?: boolean;
+  /** Glyph drawn inside the corner badge — defaults to a check. */
+  badge?: BadgeGlyph;
   /** Tile / emoji size in baseline px. */
   size?: number;
+
+  // app (brand app-icon tile — YouTube, Instagram, TikTok, …)
+  // `icon` = brand id from APP_BRANDS · `size` · `radius` (defaults to 22% of size) · `check`/`badge`/`accent` = corner badge
+  /** Blurred halo of the icon drawn behind the tile (baseline px of blur; 0 / undefined = none) — the "blocked app" look. */
+  glow?: number;
 
   // box-based components (shape / heatmap / card / stars / datestrip)
   /** Box size in baseline px. */
@@ -210,7 +223,7 @@ export interface SlideElement {
   /** Show the 🔥 flame next to the current-streak value. */
   showFire?: boolean;
 
-  // heatmap grid
+  // heatmap grid (cols/rows) · star count for `stars` and the optional row under a `laurel` (cols, 0–5)
   cols?: number;
   rows?: number;
   /** 0..1 fraction of filled cells. */
@@ -237,12 +250,29 @@ export interface SlideElement {
   island?: boolean;
   /** Phone visual: 'gradient' (decorative dark→grey) or 'frame' (realistic bezel + light screen + status bar). */
   phoneStyle?: 'gradient' | 'frame';
+  // frame status bar: `text` = time (shown with signal/wifi/battery when non-empty) · `cardTitle` = app name + avatar (shown when non-empty) · `color` = status ink (default #1A1A1A)
 
   // widget (lock-screen / home-screen Norte widgets)
   /** Widget layout: today list · done square · month heatmap square. */
   variant?: 'today' | 'done' | 'month';
   /** Rows for the 'today' widget. */
   items?: WidgetRow[];
+
+  // press ("as seen in" row of publication wordmarks)
+  // `text` = comma-separated names (TechCrunch, USA TODAY, Forbes, …) · `fontSize` = logo height · `color` = ink.
+  // Known names get their signature monochrome treatment; anything else renders as bold caps. Not localized.
+
+  // segmented (iOS-style segmented control): `days` = comma-separated labels · `activeIndex` · `bg` track · `accent` active pill · `color` label ink · `fontSize`
+  // statrow (row of value/label columns): `dates` = values · `days` = labels · `fontSize` value size · `color` values · `accent` labels · `align` left = packed, center = spread
+  // usagechart (bars per day with y-axis): `days` labels · `dates` numeric values · `unit` suffix · `yTicks` bottom→top · `yMax` scale · `activeIndex` · `bg` card · `cell` bar · `accent` active bar · `color` ink
+  // approw (app usage row): `icon` brand · `text` name · `cardValue` time · `cardCaption` meta · `fill` progress 0–1 · `bg` · `color` ink · `accent` bar
+  // review (App Store testimonial card): `text` quote · `cardTitle` author · `cols` stars 0–5 · `accent` star colour · `bg` card · `color` ink · `fontSize` quote size · `w` · `h` (min height) · `radius`
+  // appstrip (row of app icons on backdrop tiles with captions): `apps` brand ids CSV · `dates` captions CSV · `size` tile · `radius` · `bg` backdrop · `color` caption ink
+  // rulecard (Norte focus rule): `icon` trigger glyph (hourglass | calendar | clock) · `check` active · `cardTitle` status pill · `text` name · `cardCaption` "Block" label · `apps` blocked brand ids CSV · `bg` · `color` ink · `accent`
+  // tabbar (Norte bottom tab bar): `days` labels CSV · `icon` glyph names CSV (moon, rings, target, user, …) · `activeIndex` · `bg` pill · `color` ink · `accent` active dot · `w` · `h` · `radius`
+  // app `framed` = "locked" overlay (dimmed icon, centre lock, ring in `accent`) · appstrip `days` = per-tile "1"/"0" flags for the small "already in a rule" dot (colour `accent`)
+  /** Comma-separated brand ids from APP_BRANDS (appstrip tiles, rulecard blocked apps). */
+  apps?: string;
 
   // datestrip / charts
   /** Comma-separated x/day labels, e.g. "Q,S,S,D,S,T" or "FEV,MAR,ABR,MAI,JUN". */

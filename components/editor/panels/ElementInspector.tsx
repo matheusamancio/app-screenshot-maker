@@ -2,25 +2,56 @@
 
 import React from 'react';
 import { useProjectStore } from '@/store/projectStore';
-import type { Slide, Alignment, SlideElement } from '@/types';
+import type { Slide, Alignment, SlideElement, BadgeGlyph } from '@/types';
+import { BASE_LANGUAGE } from '@/types';
 import { kindLabel } from '@/lib/elements';
+import { LANGUAGES } from '@/lib/presets';
+import AppIcon, { APP_BRANDS } from '../../templates/AppIcon';
 import ColorPicker from '../../ui/ColorPicker';
 import Slider from '../../ui/Slider';
 import { Toggle, TextField, Section, AlignRow } from './inspectorShared';
+
+/** Scalar text fields that get localized per active language (arrays/structure stay base). */
+const LOCALIZABLE_TEXT = new Set(['text', 'cardTitle', 'cardValue', 'cardTitle2', 'cardValue2', 'cardCaption', 'unit', 'toggleLeft', 'toggleRight', 'days', 'dates', 'yTicks']);
 
 /**
  * The single-component inspector. Shows only the controls that apply to the
  * selected element's kind, followed by a shared Arrange (layer order + align to
  * screen) and Appearance (opacity + shadow) block.
  */
-export default function ElementInspector({ slide, el }: { slide: Slide; el: SlideElement }) {
+export default function ElementInspector({ slide, el: baseEl }: { slide: Slide; el: SlideElement }) {
   const updateElement = useProjectStore((s) => s.updateElement);
   const deleteElement = useProjectStore((s) => s.deleteElement);
   const copyElement = useProjectStore((s) => s.copyElement);
   const duplicateElement = useProjectStore((s) => s.duplicateElement);
   const reorderElement = useProjectStore((s) => s.reorderElement);
+  const setElementLocalizedText = useProjectStore((s) => s.setElementLocalizedText);
+  const activeLanguage = useProjectStore((s) => s.activeLanguage);
 
-  const update = (patch: Partial<SlideElement>) => updateElement(slide.id, el.id, patch);
+  const isBase = !activeLanguage || activeLanguage === BASE_LANGUAGE;
+  const langName = LANGUAGES.find((l) => l.code === activeLanguage)?.label || activeLanguage;
+
+  // Inputs show the active language's text for the scalar localizable fields; arrays/structure stay base.
+  const el: SlideElement = isBase
+    ? baseEl
+    : (() => {
+        const tr = baseEl.loc?.[activeLanguage] || {};
+        const v: SlideElement = { ...baseEl };
+        LOCALIZABLE_TEXT.forEach((f) => { const t = tr[f]; if (typeof t === 'string' && t.trim() !== '') (v as unknown as Record<string, unknown>)[f] = t; });
+        return v;
+      })();
+
+  // When a translation language is active, scalar text edits write that language; everything else (size,
+  // colour, structure, widget rows, chart series) always edits the base.
+  const update = (patch: Partial<SlideElement>) => {
+    if (isBase) { updateElement(slide.id, baseEl.id, patch); return; }
+    const baseOnly: Record<string, unknown> = {};
+    Object.entries(patch).forEach(([k, v]) => {
+      if (LOCALIZABLE_TEXT.has(k) && typeof v === 'string' && baseEl.kind !== 'press') setElementLocalizedText(slide.id, baseEl.id, activeLanguage, v, k);
+      else baseOnly[k] = v;
+    });
+    if (Object.keys(baseOnly).length) updateElement(slide.id, baseEl.id, baseOnly as Partial<SlideElement>);
+  };
 
   return (
     <div className="space-y-3">
@@ -28,11 +59,17 @@ export default function ElementInspector({ slide, el }: { slide: Slide; el: Slid
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold text-primary font-sora">{kindLabel(el.kind)}</div>
         <div className="flex gap-1">
-          <IconBtn title="Duplicate" onClick={() => duplicateElement(slide.id, el.id)}><DupIcon /></IconBtn>
-          <IconBtn title="Copy (⌘C)" onClick={() => copyElement(slide.id, el.id)}><CopyIcon /></IconBtn>
-          <IconBtn title="Delete" danger onClick={() => deleteElement(slide.id, el.id)}><TrashIcon /></IconBtn>
+          <IconBtn title="Duplicate" onClick={() => duplicateElement(slide.id, baseEl.id)}><DupIcon /></IconBtn>
+          <IconBtn title="Copy (⌘C)" onClick={() => copyElement(slide.id, baseEl.id)}><CopyIcon /></IconBtn>
+          <IconBtn title="Delete" danger onClick={() => deleteElement(slide.id, baseEl.id)}><TrashIcon /></IconBtn>
         </div>
       </div>
+
+      {!isBase && (
+        <div className="text-[11px] rounded-md bg-norte-primary-light border border-norte-primary/30 text-norte-primary px-2.5 py-1.5 leading-snug">
+          Editing the <span className="font-semibold">{langName}</span> copy. Text fields here update {langName}; sizes, colours, widget rows &amp; chart series always edit the base (★ English).
+        </div>
+      )}
 
       {/* Kind-specific controls */}
       {el.kind === 'text' ? (
@@ -90,6 +127,7 @@ function TextEditor({ el, update }: { el: SlideElement; update: (p: Partial<Slid
         className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border-default rounded-md text-secondary resize-none focus:border-norte-primary focus:outline-none"
       />
       <Slider label="Size" value={el.fontSize || 28} min={10} max={72} suffix="px" onChange={(v) => update({ fontSize: v })} />
+      <Slider label="Tracking" value={Math.round((el.letterSpacing ?? -0.01) * 100)} min={-5} max={30} onChange={(v) => update({ letterSpacing: v / 100 })} />
       <div className="grid grid-cols-2 gap-2">
         <div>
           <div className="section-label mb-1.5">Color</div>
@@ -137,23 +175,66 @@ function EmojiEditor({ el, update }: { el: SlideElement; update: (p: Partial<Sli
         <Toggle on={el.tile !== false} onToggle={() => update({ tile: !(el.tile !== false) })} />
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-xs text-text-muted">Check badge</span>
+        <span className="text-xs text-text-muted">Corner badge</span>
         <Toggle on={!!el.check} onToggle={() => update({ check: !el.check })} />
+      </div>
+      {el.check && <BadgePicker value={el.badge} onChange={(b) => update({ badge: b })} />}
+    </div>
+  );
+}
+
+/** Check / lock / hourglass glyph selector for tile corner badges. */
+function BadgePicker({ value, onChange }: { value?: BadgeGlyph; onChange: (b: BadgeGlyph) => void }) {
+  const opts: { id: BadgeGlyph; label: string }[] = [
+    { id: 'check', label: '✓ Check' },
+    { id: 'lock', label: '🔒 Lock' },
+    { id: 'hourglass', label: '⏳ Timer' },
+  ];
+  return (
+    <div>
+      <div className="section-label mb-1.5">Badge</div>
+      <div className="grid grid-cols-3 gap-1 bg-overlay rounded-md p-1 border border-border-default">
+        {opts.map((o) => (
+          <button key={o.id} onClick={() => onChange(o.id)} className={`h-7 text-[11px] rounded font-medium ${(value || 'check') === o.id ? 'bg-surface text-norte-primary shadow-sm' : 'text-text-muted'}`}>
+            {o.label}
+          </button>
+        ))}
       </div>
     </div>
   );
 }
 
-const ICON_OPTIONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play'];
+const ICON_OPTIONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play', 'chevron-left', 'chevron-right'];
+
+/** Grid of brand tiles (YouTube, Instagram, …, Norte) used by the App icon and App usage row inspectors. */
+function BrandPicker({ value, onChange }: { value?: string; onChange: (id: string) => void }) {
+  return (
+    <div>
+      <div className="section-label mb-1.5">App</div>
+      <div className="grid grid-cols-5 gap-1.5">
+        {APP_BRANDS.map((b) => (
+          <button
+            key={b.id}
+            onClick={() => onChange(b.id)}
+            title={b.label}
+            className={`aspect-square rounded-md border flex items-center justify-center ${(value || 'youtube') === b.id ? 'border-norte-primary bg-norte-primary-light' : 'border-border-default bg-overlay'}`}
+          >
+            <AppIcon brand={b.id} size={26} radius={6} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: Partial<SlideElement>) => void }) {
   const box = sel.kind === 'shape' || sel.kind === 'card';
   return (
     <div className="space-y-3">
-      {(sel.kind === 'shape' || sel.kind === 'card' || sel.kind === 'heatmap' || sel.kind === 'datestrip' || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'streak' || sel.kind === 'blur') && (
+      {(sel.kind === 'shape' || sel.kind === 'card' || sel.kind === 'heatmap' || sel.kind === 'datestrip' || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'streak' || sel.kind === 'blur' || sel.kind === 'segmented' || sel.kind === 'statrow' || sel.kind === 'usagechart' || sel.kind === 'approw' || sel.kind === 'review' || sel.kind === 'rulecard' || sel.kind === 'tabbar') && (
         <Slider label="Width" value={sel.w || 200} min={40} max={380} suffix="px" onChange={(v) => update({ w: v })} />
       )}
-      {(box || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'blur' || (sel.kind === 'heatmap' && sel.framed)) && (
+      {(box || sel.kind === 'barchart' || sel.kind === 'linechart' || sel.kind === 'blur' || sel.kind === 'usagechart' || (sel.kind === 'heatmap' && sel.framed)) && (
         <Slider label="Height" value={sel.h || 120} min={40} max={460} suffix="px" onChange={(v) => update({ h: v })} />
       )}
       {box && (
@@ -320,21 +401,26 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
             <Slider label="Y max" value={sel.yMax || 50} min={5} max={200} onChange={(v) => update({ yMax: v })} />
           </div>
           <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Mais íngreme = mais consistente" />
+          <div className="section-label">Habits</div>
           {(sel.series || []).map((s, i) => (
             <div key={i} className="rounded-md border border-border-default p-2 space-y-2">
+              <TextField
+                value={s.label}
+                onChange={(v) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, label: v } : x)) })}
+                placeholder={`Habit ${i + 1} name`}
+              />
               <div className="flex items-center gap-2">
-                <ColorPicker color={s.color} onChange={(c) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, color: c } : x)) })} />
+                <div className="w-24 shrink-0">
+                  <ColorPicker color={s.color} onChange={(c) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, color: c } : x)) })} />
+                </div>
                 <input
-                  value={s.label}
-                  onChange={(e) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })}
-                  className="flex-1 min-w-0 px-2 py-1 rounded bg-overlay border border-border-default text-xs text-primary"
+                  value={s.values.map((v) => (v == null ? '' : v)).join(',')}
+                  onChange={(e) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, values: e.target.value.split(',').map((t) => (t.trim() === '' ? null : parseFloat(t))) } : x)) })}
+                  placeholder="0,6,16,31,45"
+                  title="Values (comma-separated, empty = no point)"
+                  className="flex-1 min-w-0 h-9 px-2.5 text-sm bg-surface border border-border-default rounded-md text-secondary focus:border-norte-primary focus:outline-none"
                 />
               </div>
-              <TextField
-                value={s.values.map((v) => (v == null ? '' : v)).join(',')}
-                onChange={(v) => update({ series: (sel.series || []).map((x, j) => (j === i ? { ...x, values: v.split(',').map((t) => (t.trim() === '' ? null : parseFloat(t))) } : x)) })}
-                placeholder="0,6,16,31,45 (empty = no point)"
-              />
             </div>
           ))}
           <div>
@@ -379,11 +465,46 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
                 <Toggle on={!!sel.check} onToggle={() => update({ check: !sel.check })} />
               </label>
               {sel.check && (
-                <div>
-                  <div className="section-label mb-1.5">Badge colour</div>
-                  <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
-                </div>
+                <>
+                  <BadgePicker value={sel.badge} onChange={(b) => update({ badge: b })} />
+                  <div>
+                    <div className="section-label mb-1.5">Badge colour</div>
+                    <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+                  </div>
+                </>
               )}
+            </>
+          )}
+        </>
+      )}
+
+      {sel.kind === 'app' && (
+        <>
+          <BrandPicker value={sel.icon} onChange={(id) => update({ icon: id })} />
+          <Slider label="Size" value={sel.size || 96} min={40} max={200} suffix="px" onChange={(v) => update({ size: v })} />
+          <Slider label="Corner radius" value={sel.radius ?? Math.round((sel.size || 96) * 0.22)} min={0} max={Math.round((sel.size || 96) / 2)} suffix="px" onChange={(v) => update({ radius: v })} />
+          <Slider label="Glow" value={sel.glow || 0} min={0} max={40} suffix="px" onChange={(v) => update({ glow: v })} />
+          <label className="flex items-center justify-between gap-2 px-1">
+            <span className="section-label">Locked overlay (dim + centre lock + ring)</span>
+            <Toggle on={!!sel.framed} onToggle={() => update({ framed: !sel.framed })} />
+          </label>
+          {sel.framed && (
+            <div>
+              <div className="section-label mb-1.5">Ring colour</div>
+              <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+            </div>
+          )}
+          <label className="flex items-center justify-between gap-2 px-1">
+            <span className="section-label">Corner badge</span>
+            <Toggle on={!!sel.check} onToggle={() => update({ check: !sel.check })} />
+          </label>
+          {sel.check && (
+            <>
+              <BadgePicker value={sel.badge} onChange={(b) => update({ badge: b })} />
+              <div>
+                <div className="section-label mb-1.5">Badge colour</div>
+                <ColorPicker color={sel.accent || '#111111'} onChange={(c) => update({ accent: c })} />
+              </div>
             </>
           )}
         </>
@@ -469,7 +590,7 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
                 <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="9:41" />
                 <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="NORTE" />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
                   <div className="section-label mb-1.5">Bezel</div>
                   <ColorPicker color={sel.bg || '#2B2B2D'} onChange={(c) => update({ bg: c })} />
@@ -478,8 +599,12 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
                   <div className="section-label mb-1.5">Screen</div>
                   <ColorPicker color={sel.bg2 || '#EFEDE8'} onChange={(c) => update({ bg2: c })} />
                 </div>
+                <div>
+                  <div className="section-label mb-1.5">Status</div>
+                  <ColorPicker color={sel.color || '#1A1A1A'} onChange={(c) => update({ color: c })} />
+                </div>
               </div>
-              <p className="text-[11px] text-text-muted">An empty device — drop other components on top to fill the screen. Clear the app name to hide the status bar.</p>
+              <p className="text-[11px] text-text-muted">An empty device — drop other components on top to fill the screen. Clear the time to hide the status bar, clear the app name to hide the name + avatar.</p>
             </>
           ) : (
             <div className="grid grid-cols-2 gap-2">
@@ -605,7 +730,11 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
         <>
           <TextField value={sel.cardValue || ''} onChange={(v) => update({ cardValue: v })} placeholder="+38,420" />
           <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Hábitos cumpridos" />
-          <Slider label="Size" value={sel.size || 56} min={28} max={120} suffix="px" onChange={(v) => update({ size: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Size" value={sel.size || 56} min={28} max={120} suffix="px" onChange={(v) => update({ size: v })} />
+            <Slider label="Value size" value={sel.fontSize || 30} min={10} max={48} suffix="px" onChange={(v) => update({ fontSize: v })} />
+          </div>
+          <Slider label="Stars" value={sel.cols ?? 0} min={0} max={5} onChange={(v) => update({ cols: v })} />
           <div>
             <div className="section-label mb-1.5">Colour</div>
             <ColorPicker color={sel.color || '#111111'} onChange={(c) => update({ color: c })} />
@@ -661,6 +790,264 @@ function ComponentEditor({ sel, update }: { sel: SlideElement; update: (patch: P
           <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="Q,S,S,D,S,T" />
           <TextField value={sel.dates || ''} onChange={(v) => update({ dates: v })} placeholder="28,29,30,31,1,2" />
           <Slider label="Highlight" value={sel.activeIndex ?? 5} min={0} max={9} onChange={(v) => update({ activeIndex: v })} />
+        </>
+      )}
+
+      {sel.kind === 'segmented' && (
+        <>
+          <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="Month,Week,Day" />
+          <Slider label="Highlight" value={sel.activeIndex ?? 0} min={0} max={5} onChange={(v) => update({ activeIndex: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Height" value={sel.h || 32} min={22} max={60} suffix="px" onChange={(v) => update({ h: v })} />
+            <Slider label="Radius" value={sel.radius ?? 16} min={0} max={30} onChange={(v) => update({ radius: v })} />
+          </div>
+          <Slider label="Text size" value={sel.fontSize || 11} min={8} max={20} suffix="px" onChange={(v) => update({ fontSize: v })} />
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Track</div>
+              <ColorPicker color={sel.bg || '#2A2A2C'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Active</div>
+              <ColorPicker color={sel.accent || '#F4F2ED'} onChange={(c) => update({ accent: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Ink</div>
+              <ColorPicker color={sel.color || '#F4F2ED'} onChange={(c) => update({ color: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Comma-separated labels; Highlight picks the active segment.</p>
+        </>
+      )}
+
+      {sel.kind === 'statrow' && (
+        <>
+          <TextField value={sel.dates || ''} onChange={(v) => update({ dates: v })} placeholder="2h 17m,54,51" />
+          <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="SCREEN TIME,PICKUPS,NOTIFICATIONS" />
+          <Slider label="Value size" value={sel.fontSize || 14} min={9} max={40} suffix="px" onChange={(v) => update({ fontSize: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            {(['left', 'center'] as const).map((a) => (
+              <button key={a} onClick={() => update({ align: a })} className={`px-2 py-2 rounded-md border text-xs ${(sel.align || 'left') === a ? 'border-norte-primary bg-norte-primary-light text-norte-primary' : 'border-border-default bg-overlay text-secondary'}`}>
+                {a === 'left' ? 'Packed' : 'Spread'}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Values</div>
+              <ColorPicker color={sel.color || '#F4F2ED'} onChange={(c) => update({ color: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Labels</div>
+              <ColorPicker color={sel.accent || '#A8A49C'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Comma-separated values and labels — one column each.</p>
+        </>
+      )}
+
+      {sel.kind === 'usagechart' && (
+        <>
+          <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="Sun,Mon,Tue,Wed,Thu,Fri,Sat" />
+          <TextField value={sel.dates || ''} onChange={(v) => update({ dates: v })} placeholder="1.4,1.5,1.1,0.9,0.8,1.4,1.6" />
+          <div className="grid grid-cols-2 gap-2">
+            <TextField value={sel.unit || ''} onChange={(v) => update({ unit: v })} placeholder="Unit (h)" />
+            <TextField value={sel.yTicks || ''} onChange={(v) => update({ yTicks: v })} placeholder="0m,1h,2h" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Y max" value={sel.yMax || 0} min={0} max={24} step={0.5} onChange={(v) => update({ yMax: v })} />
+            <Slider label="Highlight" value={sel.activeIndex ?? 6} min={0} max={11} onChange={(v) => update({ activeIndex: v })} />
+          </div>
+          <Slider label="Radius" value={sel.radius ?? 20} min={0} max={48} onChange={(v) => update({ radius: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Card</div>
+              <ColorPicker color={sel.bg || '#F6F4EF'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Ink</div>
+              <ColorPicker color={sel.color || '#1A1A1A'} onChange={(c) => update({ color: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Bars</div>
+              <ColorPicker color={sel.cell || '#1A1A1A'} onChange={(c) => update({ cell: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Active bar</div>
+              <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Values are numbers (decimals ok) shown with the unit above each bar. Y max sets the scale (0 = fit the tallest bar); axis ticks run bottom → top.</p>
+        </>
+      )}
+
+      {sel.kind === 'approw' && (
+        <>
+          <BrandPicker value={sel.icon} onChange={(id) => update({ icon: id })} />
+          <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="YouTube" />
+          <div className="grid grid-cols-2 gap-2">
+            <TextField value={sel.cardValue || ''} onChange={(v) => update({ cardValue: v })} placeholder="33m 59s" />
+            <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="1 pickups · 0 notifications" />
+          </div>
+          <Slider label="Progress" value={Math.round((sel.fill ?? 0.8) * 100)} min={0} max={100} suffix="%" onChange={(v) => update({ fill: v / 100 })} />
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Height" value={sel.h || 56} min={36} max={120} suffix="px" onChange={(v) => update({ h: v })} />
+            <Slider label="Radius" value={sel.radius ?? 12} min={0} max={40} onChange={(v) => update({ radius: v })} />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Card</div>
+              <ColorPicker color={sel.bg || '#242427'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Ink</div>
+              <ColorPicker color={sel.color || '#F4F2ED'} onChange={(c) => update({ color: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Bar</div>
+              <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Double-click the row on the canvas to edit the app name.</p>
+        </>
+      )}
+
+      {sel.kind === 'review' && (
+        <>
+          <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="The block screen actually works." />
+          <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="Priya R." />
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Stars" value={sel.cols ?? 5} min={0} max={5} onChange={(v) => update({ cols: v })} />
+            <Slider label="Text size" value={sel.fontSize || 12.5} min={9} max={22} step={0.5} suffix="px" onChange={(v) => update({ fontSize: v })} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Min height" value={sel.h || 0} min={0} max={300} suffix="px" onChange={(v) => update({ h: v })} />
+            <Slider label="Radius" value={sel.radius ?? 18} min={0} max={40} onChange={(v) => update({ radius: v })} />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Card</div>
+              <ColorPicker color={sel.bg || '#FFFFFF'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Ink</div>
+              <ColorPicker color={sel.color || '#1A1A1A'} onChange={(c) => update({ color: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Stars</div>
+              <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Double-click the card on the canvas to edit the quote. Min height 0 = fit the text.</p>
+        </>
+      )}
+
+      {sel.kind === 'appstrip' && (
+        <>
+          <TextField value={sel.apps || ''} onChange={(v) => update({ apps: v })} placeholder="instagram,youtube,tiktok,norte,netflix" />
+          <TextField value={sel.dates || ''} onChange={(v) => update({ dates: v })} placeholder="6h,5h,1h,1h,1h" />
+          <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+            <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="Dot flags: 1,0,0,0,1" />
+            <div>
+              <div className="section-label mb-1.5">Dot</div>
+              <ColorPicker color={sel.accent || '#8FA88A'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Tile size" value={sel.size || 40} min={20} max={96} suffix="px" onChange={(v) => update({ size: v })} />
+            <Slider label="Radius" value={sel.radius ?? Math.round((sel.size || 40) * 0.28)} min={0} max={48} onChange={(v) => update({ radius: v })} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Backdrop</div>
+              <ColorPicker color={sel.bg || '#2A2A2C'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Captions</div>
+              <ColorPicker color={sel.color || '#A8A49C'} onChange={(c) => update({ color: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Brand ids (youtube, instagram, tiktok, snapchat, x, threads, netflix, whatsapp, facebook, norte) and one caption per icon, comma-separated.</p>
+        </>
+      )}
+
+      {sel.kind === 'rulecard' && (
+        <>
+          <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="Time Keeper" />
+          <div className="grid grid-cols-2 gap-2">
+            <TextField value={sel.cardTitle || ''} onChange={(v) => update({ cardTitle: v })} placeholder="Blocked now" />
+            <TextField value={sel.cardCaption || ''} onChange={(v) => update({ cardCaption: v })} placeholder="Block" />
+          </div>
+          <TextField value={sel.apps || ''} onChange={(v) => update({ apps: v })} placeholder="instagram,tiktok" />
+          <div className="grid grid-cols-3 gap-1.5">
+            {(['hourglass', 'calendar', 'clock'] as const).map((g) => (
+              <button key={g} onClick={() => update({ icon: g })} className={`px-2 py-2 rounded-md border text-xs capitalize ${(sel.icon || 'hourglass') === g ? 'border-norte-primary bg-norte-primary-light text-norte-primary' : 'border-border-default bg-overlay text-secondary'}`}>
+                {g}
+              </button>
+            ))}
+          </div>
+          <label className="flex items-center justify-between gap-2 px-1">
+            <span className="section-label">Active (orange shield + pill)</span>
+            <Toggle on={!!sel.check} onToggle={() => update({ check: !sel.check })} />
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Min height" value={sel.h || 0} min={0} max={300} suffix="px" onChange={(v) => update({ h: v })} />
+            <Slider label="Radius" value={sel.radius ?? 16} min={0} max={40} onChange={(v) => update({ radius: v })} />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Card</div>
+              <ColorPicker color={sel.bg || '#F6F4EF'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Ink</div>
+              <ColorPicker color={sel.color || '#1A1A1A'} onChange={(c) => update({ color: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Accent</div>
+              <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Double-click the card on the canvas to edit the rule name. Blocked apps are brand ids, comma-separated.</p>
+        </>
+      )}
+
+      {sel.kind === 'tabbar' && (
+        <>
+          <TextField value={sel.days || ''} onChange={(v) => update({ days: v })} placeholder="Today,Year,Focus,Profile" />
+          <TextField value={sel.icon || ''} onChange={(v) => update({ icon: v })} placeholder="moon,rings,target,user" />
+          <Slider label="Active tab" value={sel.activeIndex ?? 0} min={0} max={5} onChange={(v) => update({ activeIndex: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="Height" value={sel.h || 52} min={36} max={80} suffix="px" onChange={(v) => update({ h: v })} />
+            <Slider label="Radius" value={sel.radius ?? 26} min={0} max={40} onChange={(v) => update({ radius: v })} />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <div className="section-label mb-1.5">Pill</div>
+              <ColorPicker color={sel.bg || '#4A4946'} onChange={(c) => update({ bg: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Ink</div>
+              <ColorPicker color={sel.color || '#F4F2ED'} onChange={(c) => update({ color: c })} />
+            </div>
+            <div>
+              <div className="section-label mb-1.5">Dot</div>
+              <ColorPicker color={sel.accent || '#E8923C'} onChange={(c) => update({ accent: c })} />
+            </div>
+          </div>
+          <p className="text-[11px] text-text-muted">Labels and icon names are comma-separated (icons: moon, rings, target, user, check, fire, lock, bell, plus, play).</p>
+        </>
+      )}
+
+      {sel.kind === 'press' && (
+        <>
+          <TextField value={sel.text || ''} onChange={(v) => update({ text: v })} placeholder="TechCrunch, USA TODAY, Forbes" />
+          <Slider label="Logo size" value={sel.fontSize || 14} min={10} max={24} suffix="px" onChange={(v) => update({ fontSize: v })} />
+          <div>
+            <div className="section-label mb-1.5">Colour</div>
+            <ColorPicker color={sel.color || '#1A1A1A'} onChange={(c) => update({ color: c })} />
+          </div>
+          <p className="text-[11px] text-text-muted">Comma-separated names. TechCrunch, USA TODAY, Forbes, Wired, The Verge, Product Hunt, Mashable, CNET, Fast Company and Business Insider get their signature look; anything else renders as bold caps.</p>
         </>
       )}
     </div>

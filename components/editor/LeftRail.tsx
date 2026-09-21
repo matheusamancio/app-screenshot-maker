@@ -23,6 +23,16 @@ import {
   newIconEl,
   newStarsEl,
   newLaurelEl,
+  newPressLogos,
+  newAppIcon,
+  newSegmented,
+  newStatRow,
+  newUsageChart,
+  newAppRow,
+  newReviewCard,
+  newAppStrip,
+  newRuleCard,
+  newTabBar,
   newDateStrip,
   newStreakWidget,
   newStatCard,
@@ -34,6 +44,7 @@ import {
 import type { SlideElement } from '@/types';
 import { fileToBase64 } from '@/lib/utils';
 import BackgroundPanel from './panels/BackgroundPanel';
+import AppIcon, { APP_BRANDS } from '../templates/AppIcon';
 import { useToast } from '../ui/Toast';
 import type { Slide } from '@/types';
 
@@ -120,8 +131,17 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
     { label: 'Rounded box', make: () => newShape() },
     { label: 'Stars', make: () => newStarsEl() },
     { label: 'Laurel rating', make: () => newLaurelEl() },
+    { label: 'Press logos', make: () => newPressLogos() },
+    { label: 'Segmented control', make: () => newSegmented() },
+    { label: 'Stats row', make: () => newStatRow() },
+    { label: 'Usage chart', make: () => newUsageChart() },
+    { label: 'App usage row', make: () => newAppRow() },
+    { label: 'Review card', make: () => newReviewCard() },
+    { label: 'App strip', make: () => newAppStrip() },
+    { label: 'Rule card', make: () => newRuleCard() },
+    { label: 'Tab bar', make: () => newTabBar() },
   ];
-  const ICONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play'];
+  const ICONS = ['check', 'fire', 'lock', 'bell', 'mountain', 'plus', 'play', 'chevron-left', 'chevron-right'];
 
   const onUpload = async (file: File | undefined) => {
     if (!file) return;
@@ -219,6 +239,21 @@ export default function LeftRail({ onOpenTemplates }: { onOpenTemplates: () => v
                   </div>
                 </div>
                 <div>
+                  <div className="section-label mb-2">App icons</div>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {APP_BRANDS.map((b) => (
+                      <button
+                        key={b.id}
+                        onClick={() => add(newAppIcon(b.id))}
+                        title={`Add ${b.label} icon (with lock badge)`}
+                        className="aspect-square rounded-md border border-border-default bg-overlay hover:bg-muted flex items-center justify-center"
+                      >
+                        <AppIcon brand={b.id} size={28} radius={7} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
                   <div className="section-label mb-2">Icons</div>
                   <div className="grid grid-cols-5 gap-1.5">
                     {ICONS.map((ic) => (
@@ -288,6 +323,8 @@ function NorteIconPreview({ name }: { name: string }) {
     case 'mountain': return (<svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor"><path d="M3 20 9 8l3 5 2-3 4 10z" /><circle cx="14" cy="3.5" r="1.4" /></svg>);
     case 'plus': return (<svg {...p}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>);
     case 'play': return (<svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>);
+    case 'chevron-left': return (<svg {...p} strokeWidth={2.6}><polyline points="15 5 8 12 15 19" /></svg>);
+    case 'chevron-right': return (<svg {...p} strokeWidth={2.6}><polyline points="9 5 16 12 9 19" /></svg>);
     default: return (<svg {...p}><circle cx="12" cy="12" r="9" /></svg>);
   }
 }

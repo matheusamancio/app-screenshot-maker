@@ -90,7 +90,8 @@ const SUBHEAD = (text: string): Omit<SlideElement, 'id'> => ({
   width: 320,
 });
 
-const NORTE_ROLES: RecipeRole[] = ['hero', 'use-case', 'differentiator', 'secondary', 'secondary', 'secondary', 'cta'];
+/** Roles of the seven extracted screens — the cover (NORTE_COVER) is the hero, so the old hero becomes a use-case screen. */
+const NORTE_ROLES: RecipeRole[] = ['use-case', 'use-case', 'differentiator', 'secondary', 'secondary', 'secondary', 'cta'];
 
 /** Clean single-line pill headlines (the source splits the pill word into its own node). */
 const NORTE_HEADLINES = [
@@ -181,6 +182,10 @@ function upgradeNorteScreen(els: RawEl[], i: number): RawEl[] {
     drop((e) => e.kind === 'shape' && e.bg === '#fcfbf8' && anyNear(e, tiles, 6));
     drop((e) => e.kind === 'shape' && e.bg === '#1a1a1a' && (e.w || 0) <= 22 && anyNear(e, dots, 8));
     out = out.map((e) => (e.kind === 'emoji' && anyNear(e, tiles, 8) ? { ...e, tile: true, check: true, size: 58 } : e));
+    // In-phone app-icon placeholder (light square + notch circle) → the real Norte logo
+    drop((e) => e.kind === 'shape' && near(e, 195, 475, 6) && (e.w || 0) <= 80);
+    drop((e) => e.kind === 'shape' && near(e, 226, 445, 6) && (e.w || 0) <= 30);
+    add({ kind: 'app', icon: 'norte', x: 195, y: 475, size: 75, radius: 17, check: false });
   } else if (i === 1) {
     // Compact habit list → Habit-row card components (check toggle + emoji + name + streak)
     drop((e) => e.kind === 'shape' && (e.w || 0) < 215 && (near(e, 195, 394, 7) || near(e, 195, 445, 7) || near(e, 195, 496, 7) || near(e, 118, 394, 7) || near(e, 118, 445, 7)));
@@ -224,7 +229,7 @@ function upgradeNorteScreen(els: RawEl[], i: number): RawEl[] {
     // App icon → Norte logo (with orange check); CTA pill → Button component
     drop((e) => e.kind === 'shape' && (near(e, 195, 365, 8) || near(e, 233, 328, 8) || near(e, 195, 541, 8)));
     drop((e) => e.kind === 'text' && near(e, 195, 541, 8));
-    add({ kind: 'icon', icon: 'mountain', tile: true, x: 195, y: 365, size: 90, radius: 21, bg: '#1C1C1E', color: '#F4F2ED', check: true, accent: '#E8923C' });
+    add({ kind: 'app', icon: 'norte', x: 195, y: 365, size: 90, radius: 21, check: true, badge: 'check', accent: '#E8923C' });
     add({ kind: 'button', x: 195, y: 541, text: 'Get Norte — Free', showArrow: true, bg: '#1A1A1A', color: '#F4F2ED', fontSize: 15, radius: 23, h: 46 });
   }
   return useNortePhoneFrame(out);
@@ -266,6 +271,352 @@ function upgradeNorteScreenV2(els: RawEl[], i: number): RawEl[] {
   return out;
 }
 
+/**
+ * Centers of a rotated square lattice. `cells` are [col, row] offsets from the
+ * grid center (−1 / 0 / 1 for a 3×3), `pitch` the cell-to-cell distance and
+ * `rotation` the CSS rotation (degrees, clockwise-positive) applied to the wall —
+ * pass the same value as each tile's own `rotation` so the tiles stay aligned.
+ */
+export function rotatedGrid(cx: number, cy: number, pitch: number, rotation: number, cells: [number, number][]): { x: number; y: number }[] {
+  const t = (rotation * Math.PI) / 180;
+  const cos = Math.cos(t);
+  const sin = Math.sin(t);
+  return cells.map(([c, r]) => ({
+    x: Math.round(cx + pitch * (c * cos - r * sin)),
+    y: Math.round(cy + pitch * (c * sin + r * cos)),
+  }));
+}
+
+const NORTE_COVER_TILE = 134;
+const NORTE_COVER_ROTATION = -10;
+/** Row-major, center cell skipped (that one is the Norte logo) — the blocked-apps wall, mirroring the reference. */
+const NORTE_COVER_APPS = ['youtube', 'instagram', 'tiktok', 'netflix', 'whatsapp', 'snapchat', 'threads', 'x'];
+
+/**
+ * The Refocus-style cover, rebuilt from Norte components — pill headline, bold
+ * subline, laurel + stars, press logos and a tilted 3×3 wall of real app icons
+ * (padlock badges) with the Norte logo in the middle.
+ * Spec: docs/superpowers/specs/2026-09-06-norte-cover-screen-design.md
+ */
+export function norteCoverElements(): RawEl[] {
+  const cells: [number, number][] = [[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+  const wall = 'norte-cover-wall';
+  let appIdx = 0;
+  const tiles: RawEl[] = rotatedGrid(195, 612, 148, NORTE_COVER_ROTATION, cells).map((p, i) => {
+    const [c, r] = cells[i];
+    if (c === 0 && r === 0) {
+      return { kind: 'app', icon: 'norte', x: p.x, y: p.y, size: NORTE_COVER_TILE, radius: Math.round(NORTE_COVER_TILE * 0.22), check: true, badge: 'check', accent: '#E8923C', rotation: NORTE_COVER_ROTATION, scale: 1, groupId: wall };
+    }
+    return { kind: 'app', icon: NORTE_COVER_APPS[appIdx++], x: p.x, y: p.y, size: NORTE_COVER_TILE, radius: Math.round(NORTE_COVER_TILE * 0.22), check: true, badge: 'lock', accent: '#111111', rotation: NORTE_COVER_ROTATION, scale: 1, groupId: wall };
+  });
+  return [
+    ...tiles,
+    { kind: 'laurel', x: 195, y: 214, rotation: 0, scale: 1, size: 56, color: '#1A1A1A', cardValue: '15 MILLION', cardCaption: 'SUCCESS STORIES', fontSize: 15, cols: 5 },
+    { kind: 'press', x: 195, y: 280, rotation: 0, scale: 1, text: 'TechCrunch, USA TODAY, Forbes', fontSize: 14, color: '#1A1A1A' },
+    { kind: 'text', x: 195, y: 146, rotation: 0, scale: 1, text: 'Reduce <span style="font-weight:800;color:#1a1a1a">screen time</span> by <span style="font-weight:800;color:#1a1a1a">63%</span>!', fontSize: 14, fontWeight: 500, color: '#6f6c66', align: 'center', width: 340 },
+    { kind: 'text', x: 195, y: 88, rotation: 0, scale: 1, text: '[Block] Apps\n& Websites', fontSize: 36, fontWeight: 800, color: '#1a1a1a', align: 'center', width: 370 },
+  ];
+}
+
+/** Screen 1 of the Norte component kits (screens 2–3 follow below). */
+const NORTE_COVER: StarterKitSlide = {
+  role: 'hero',
+  template: 'hero',
+  title: 'Block Apps & Websites',
+  noChrome: true,
+  elements: norteCoverElements(),
+};
+
+const INK_ON_DARK = '#F4F2ED';
+const MUTED_ON_DARK = '#A8A49C';
+const DARK_SCREEN = '#19191B';
+const DARK_SURFACE = '#242427';
+const DARK_CHIP = '#2A2A2C';
+
+/**
+ * Screen 2 — the Opal-style "blocked app" moment in Norte's language: big dark
+ * iPhone, glowing Instagram icon, "Blocked by Norte", laurel on the dark screen,
+ * padlocked app tiles floating around the phone instead of Opal's shards.
+ * Spec: docs/superpowers/specs/2026-09-20-norte-focus-screens-design.md
+ */
+export function norteBlockedElements(): RawEl[] {
+  const tile = (icon: string, x: number, y: number, size: number, rotation: number): RawEl =>
+    ({ kind: 'app', icon, x, y, size, check: true, badge: 'lock', accent: '#111111', rotation, scale: 1 });
+  return [
+    { kind: 'phone', phoneStyle: 'frame', x: 195, y: 460, w: 268, h: 560, radius: 50, bg: '#2B2B2D', bg2: DARK_SCREEN, island: true, text: '9:41', color: INK_ON_DARK, cardTitle: '', rotation: 0, scale: 1 },
+    { kind: 'app', icon: 'instagram', x: 195, y: 378, size: 92, check: false, glow: 22, rotation: 0, scale: 1 },
+    { kind: 'text', x: 195, y: 478, rotation: 0, scale: 1, text: 'Instagram is\nBlocked by Norte', fontSize: 22, fontWeight: 800, color: INK_ON_DARK, align: 'center', width: 240 },
+    { kind: 'text', x: 195, y: 530, rotation: 0, scale: 1, text: 'You set this rule yesterday.\nPast you was right.', fontSize: 13, fontWeight: 500, color: MUTED_ON_DARK, align: 'center', width: 240 },
+    { kind: 'laurel', x: 195, y: 686, rotation: 0, scale: 1, size: 50, color: INK_ON_DARK, cardValue: '10 MILLION', cardCaption: 'HOURS SAVED', fontSize: 14, cols: 5 },
+    tile('snapchat', 46, 236, 62, -14),
+    tile('tiktok', 350, 268, 70, 12),
+    tile('youtube', 38, 522, 58, 9),
+    tile('x', 354, 604, 54, -10),
+    { kind: 'text', x: 195, y: 36, rotation: 0, scale: 1, text: 'APP BLOCKING', fontFamily: 'JetBrains Mono', fontSize: 10, fontWeight: 600, letterSpacing: 0.18, color: '#6f6c66', align: 'center', width: 340 },
+    { kind: 'text', x: 195, y: 152, rotation: 0, scale: 1, text: 'One rule. Set once, kept every day.', fontSize: 14, fontWeight: 500, color: '#6f6c66', align: 'center', width: 340 },
+    { kind: 'text', x: 195, y: 92, rotation: 0, scale: 1, text: '[Blocks] the apps\nyou keep opening.', fontSize: 36, fontWeight: 800, color: '#1a1a1a', align: 'center', width: 370 },
+  ];
+}
+
+/**
+ * Screen 3 — the Refocus-style "Track Screen Time" screen: dark iPhone bleeding
+ * off the bottom, segmented period control, week navigation, summary card with
+ * three stats, a light usage chart popping out of the phone and the "most
+ * screen time" app row. Every piece is an editable component.
+ */
+export function norteScreenTimeElements(): RawEl[] {
+  const T = (x: number, y: number, text: string, fontSize: number, fontWeight: number, color: string, width: number, align: 'left' | 'center' = 'left', groupId?: string): RawEl =>
+    ({ kind: 'text', x, y, rotation: 0, scale: 1, text, fontSize, fontWeight, color, align, width, ...(groupId ? { groupId } : {}) });
+  const chip = (icon: string, x: number, y: number, size: number): RawEl =>
+    ({ kind: 'icon', icon, tile: true, x, y, size, radius: size / 2, bg: DARK_CHIP, color: INK_ON_DARK, check: false, rotation: 0, scale: 1 });
+  const summary = 'norte-st-summary';
+  return [
+    { kind: 'phone', phoneStyle: 'frame', x: 195, y: 540, w: 290, h: 630, radius: 52, bg: '#2B2B2D', bg2: DARK_SCREEN, island: true, text: '9:41', color: INK_ON_DARK, cardTitle: '', rotation: 0, scale: 1 },
+    // header: logo + name, two round buttons
+    { kind: 'app', icon: 'norte', x: 84, y: 298, size: 24, radius: 6, check: false, rotation: 0, scale: 1 },
+    T(131, 298, 'Norte', 15, 800, INK_ON_DARK, 60),
+    chip('plus', 272, 298, 24),
+    chip('bell', 306, 298, 24),
+    // period picker + week navigation
+    { kind: 'segmented', x: 195, y: 336, w: 246, h: 32, radius: 16, days: 'Month,Week,Day', activeIndex: 1, bg: DARK_CHIP, accent: INK_ON_DARK, color: INK_ON_DARK, fontSize: 11, rotation: 0, scale: 1 },
+    chip('chevron-left', 84, 372, 22),
+    T(195, 372, 'This Week', 13, 700, INK_ON_DARK, 150, 'center'),
+    chip('chevron-right', 306, 372, 22),
+    // summary card (grouped so it moves as one)
+    T(195, 393, 'SUMMARY', 9, 700, MUTED_ON_DARK, 246),
+    { kind: 'shape', shapeType: 'rect', x: 195, y: 462, w: 246, h: 118, radius: 16, bg: DARK_SURFACE, opacity: 1, rotation: 0, scale: 1, groupId: summary },
+    T(195, 420, 'May 25, 2025 – May 31, 2025', 10, 500, MUTED_ON_DARK, 214, 'left', summary),
+    T(195, 446, '1h 9m', 26, 800, INK_ON_DARK, 214, 'left', summary),
+    T(195, 469, 'DAILY AVERAGE', 8, 700, MUTED_ON_DARK, 214, 'left', summary),
+    { kind: 'statrow', x: 195, y: 498, w: 214, dates: '2h 17m,54,51', days: 'SCREEN TIME,PICKUPS,NOTIFICATIONS', fontSize: 14, color: INK_ON_DARK, accent: MUTED_ON_DARK, align: 'left', rotation: 0, scale: 1, groupId: summary },
+    // the chart pops out of the phone (wider than the screen, floating shadow)
+    { kind: 'usagechart', x: 195, y: 628, w: 320, h: 200, radius: 20, bg: '#F6F4EF', cell: '#1A1A1A', accent: '#E8923C', color: '#1A1A1A', days: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat', dates: '1.4,1.5,1.1,0.9,0.8,1.4,1.6', unit: 'h', yTicks: '0m,1h,2h', yMax: 2, activeIndex: 6, shadow: 26, rotation: 0, scale: 1 },
+    // most screen time
+    T(195, 753, 'MOST SCREEN TIME', 9, 700, MUTED_ON_DARK, 246),
+    { kind: 'approw', x: 195, y: 790, w: 246, h: 56, radius: 12, bg: DARK_SURFACE, color: INK_ON_DARK, accent: '#E8923C', icon: 'youtube', text: 'YouTube', cardValue: '33m 59s', cardCaption: '1 pickups · 0 notifications', fill: 0.86, rotation: 0, scale: 1 },
+    // headline block
+    { kind: 'text', x: 195, y: 36, rotation: 0, scale: 1, text: 'ANALYTICS', fontFamily: 'JetBrains Mono', fontSize: 10, fontWeight: 600, letterSpacing: 0.18, color: '#6f6c66', align: 'center', width: 340 },
+    T(195, 152, 'Screen time, pickups and notifications at a glance.', 14, 500, '#6f6c66', 340, 'center'),
+    T(195, 92, '[Track]\nScreen Time', 36, 800, '#1a1a1a', 370, 'center'),
+  ];
+}
+
+/** Screens 2 and 3 of the Norte component kits. */
+const NORTE_BLOCKED: StarterKitSlide = {
+  role: 'use-case',
+  template: 'hero',
+  title: 'Blocks the apps you keep opening',
+  noChrome: true,
+  elements: norteBlockedElements(),
+};
+const NORTE_SCREEN_TIME: StarterKitSlide = {
+  role: 'differentiator',
+  template: 'hero',
+  title: 'Track Screen Time',
+  noChrome: true,
+  elements: norteScreenTimeElements(),
+};
+
+/**
+ * Social-proof + CTA screen — a masonry wall of five review cards (one wide hero,
+ * two medium, two short — different widths and heights, nothing overlapping, all
+ * fully on screen), two laurels and the download button. Every card is a `review`
+ * component; the wall is one group.
+ */
+const NORTE_REVIEW_CARDS: { x: number; y: number; w: number; h: number; quote: string; author: string }[] = [
+  // hero (wide): the one review with a concrete number
+  { x: 195, y: 240, w: 330, h: 104, quote: 'The block screen actually works. My screen time is down 60%.', author: 'Priya R.' },
+  // row 2: medium left, short right
+  { x: 120, y: 374, w: 180, h: 136, quote: "Finally an app that doesn't let me cheat myself. Saved my evenings.", author: 'Devon A.' },
+  { x: 290, y: 366, w: 140, h: 120, quote: 'Not doomscrolling anymore. I love this app.', author: 'Marcus' },
+  // row 3: short left, medium right (columns stagger, nothing overlaps)
+  { x: 100, y: 516, w: 140, h: 120, quote: 'Shocked how well the blocking works.', author: 'Jenna' },
+  { x: 270, y: 528, w: 180, h: 152, quote: "I got my life back. The block kicks in every time I scroll, and I don't wanna fight it.", author: 'Chammmee' },
+];
+export function norteReviewsElements(): RawEl[] {
+  const wall = 'norte-reviews-wall';
+  const cards: RawEl[] = NORTE_REVIEW_CARDS.map((c) => ({
+    kind: 'review', x: c.x, y: c.y, w: c.w, h: c.h, radius: 18, bg: '#FFFFFF', color: '#1A1A1A', accent: '#E8923C',
+    cols: 5, fontSize: 12.5, text: c.quote, cardTitle: c.author, rotation: 0, scale: 1, groupId: wall,
+  }));
+  return [
+    ...cards,
+    { kind: 'laurel', x: 108, y: 650, rotation: 0, scale: 1, size: 44, color: '#1A1A1A', cardValue: '500+', cardCaption: 'App reviews', fontSize: 20, cols: 0 },
+    { kind: 'laurel', x: 282, y: 650, rotation: 0, scale: 1, size: 44, color: '#1A1A1A', cardValue: '100%', cardCaption: 'On your phone', fontSize: 20, cols: 0 },
+    { kind: 'button', x: 195, y: 728, rotation: 0, scale: 1, text: 'Get Norte — Free', showArrow: true, bg: '#1A1A1A', color: '#F4F2ED', fontSize: 15, radius: 24, h: 48 },
+    { kind: 'text', x: 195, y: 770, rotation: 0, scale: 1, text: 'Free to start · No account needed', fontSize: 10, fontWeight: 500, color: '#A8A49C', align: 'center', width: 300 },
+    { kind: 'text', x: 195, y: 36, rotation: 0, scale: 1, text: 'WHAT PEOPLE SAY', fontFamily: 'JetBrains Mono', fontSize: 10, fontWeight: 600, letterSpacing: 0.18, color: '#6f6c66', align: 'center', width: 340 },
+    { kind: 'text', x: 195, y: 152, rotation: 0, scale: 1, text: 'What people say after a week with Norte.', fontSize: 14, fontWeight: 500, color: '#6f6c66', align: 'center', width: 340 },
+    { kind: 'text', x: 195, y: 92, rotation: 0, scale: 1, text: '[Real] people,\nreal results', fontSize: 36, fontWeight: 800, color: '#1a1a1a', align: 'center', width: 370 },
+  ];
+}
+
+/** Social-proof screen, placed right before the CTA in the Norte component kits. */
+const NORTE_REVIEWS_SLIDE: StarterKitSlide = {
+  role: 'proof',
+  template: 'hero',
+  title: 'Real reviews, real results',
+  noChrome: true,
+  elements: norteReviewsElements(),
+};
+/** Insert the reviews screen before the last (CTA) screen of a kit. */
+const withReviewsBeforeCta = (slides: StarterKitSlide[]): StarterKitSlide[] => [...slides.slice(0, -1), NORTE_REVIEWS_SLIDE, slides[slides.length - 1]];
+
+// ── Feature story — five screens built from the real Norte app (distractions, typical
+// day, focus hours, rules, today). Every piece is an editable, localizable component.
+const MONO_FONT = 'JetBrains Mono';
+/** Tracked mono kicker ("TYPICAL DAY"). */
+const K = (x: number, y: number, text: string, color: string, width = 340, align: 'left' | 'center' | 'right' = 'center', fontSize = 10, groupId?: string): RawEl =>
+  ({ kind: 'text', x, y, rotation: 0, scale: 1, text, fontFamily: MONO_FONT, fontSize, fontWeight: 600, letterSpacing: 0.18, color, align, width, ...(groupId ? { groupId } : {}) });
+/** Plain text block. */
+const TX = (x: number, y: number, text: string, fontSize: number, fontWeight: number, color: string, width: number, align: 'left' | 'center' | 'right' = 'center', groupId?: string): RawEl =>
+  ({ kind: 'text', x, y, rotation: 0, scale: 1, text, fontSize, fontWeight, color, align, width, ...(groupId ? { groupId } : {}) });
+/** Kicker + pill headline + subline at the top of a story screen. */
+const HEAD = (kicker: string, headline: string, subline: string): RawEl[] => [
+  K(195, 36, kicker, '#6f6c66'),
+  TX(195, 152, subline, 14, 500, '#6f6c66', 340),
+  TX(195, 92, headline, 36, 800, '#1a1a1a', 370),
+];
+const PHONE = (y: number, w: number, h: number, dark: boolean): RawEl =>
+  ({ kind: 'phone', phoneStyle: 'frame', x: 195, y, w, h, radius: 50, bg: '#2B2B2D', bg2: dark ? DARK_SCREEN : '#EFEDE8', island: true, text: '9:41', color: dark ? INK_ON_DARK : '#1A1A1A', cardTitle: '', rotation: 0, scale: 1 });
+const PLUS = (bg: string, color: string): RawEl =>
+  ({ kind: 'icon', icon: 'plus', tile: true, x: 302, y: 296, size: 30, radius: 15, bg, color, check: false, rotation: 0, scale: 1 });
+
+/** "Everyone has their distractions. These are yours." — the biggest app, then the next in line. */
+export function norteDistractionsElements(): RawEl[] {
+  return [
+    PHONE(500, 270, 580, true),
+    K(195, 290, 'DISTRACTIONS', MUTED_ON_DARK, 240, 'center', 9),
+    TX(195, 340, 'Everyone has their\ndistractions.\nThese are yours.', 17, 800, INK_ON_DARK, 240),
+    { kind: 'shape', shapeType: 'rect', x: 195, y: 452, w: 116, h: 116, radius: 28, bg: DARK_CHIP, opacity: 1, rotation: 0, scale: 1 },
+    { kind: 'app', icon: 'whatsapp', x: 195, y: 452, size: 74, radius: 17, check: false, rotation: 0, scale: 1 },
+    TX(195, 532, 'WhatsApp', 20, 800, INK_ON_DARK, 240),
+    TX(195, 559, '10h 14m this week', 11, 600, '#E8923C', 240),
+    K(195, 594, 'NEXT IN LINE', MUTED_ON_DARK, 240, 'center', 8.5),
+    { kind: 'appstrip', x: 195, y: 640, apps: 'instagram,youtube,tiktok,norte,netflix', dates: '6h,5h,1h,1h,1h', days: '1,0,0,0,1', accent: '#8FA88A', size: 36, radius: 10, bg: DARK_CHIP, color: MUTED_ON_DARK, rotation: 0, scale: 1 },
+    { kind: 'shape', shapeType: 'circle', x: 137, y: 694, w: 6, h: 6, radius: 0, bg: '#8FA88A', opacity: 1, rotation: 0, scale: 1 },
+    K(201, 694, 'ALREADY IN A RULE', MUTED_ON_DARK, 130, 'center', 7.5),
+    TX(195, 740, 'Add these to a rule and Norte\nwill hold them for you.', 10.5, 500, MUTED_ON_DARK, 230),
+    { kind: 'app', icon: 'x', x: 40, y: 296, size: 54, check: true, badge: 'lock', accent: '#111111', rotation: -12, scale: 1 },
+    { kind: 'app', icon: 'snapchat', x: 352, y: 650, size: 56, check: true, badge: 'lock', accent: '#111111', rotation: 10, scale: 1 },
+    ...HEAD('WEEKLY REPORT', '[Find] your\ndistractions', 'Norte shows where your week really went.'),
+  ];
+}
+
+/** "This is when you reach for it most" — the typical-day hourly chart on a dark panel. */
+export function nortePatternsElements(): RawEl[] {
+  const panel = 'norte-patterns-panel';
+  return [
+    { kind: 'shape', shapeType: 'rect', x: 195, y: 500, w: 340, h: 560, radius: 32, bg: '#151516', opacity: 1, rotation: 0, scale: 1, groupId: panel },
+    K(195, 262, 'TYPICAL DAY', MUTED_ON_DARK, 300, 'center', 9, panel),
+    TX(195, 310, 'This is when you\nreach for it most', 22, 800, INK_ON_DARK, 300, 'center', panel),
+    TX(195, 386, '22 – 23', 52, 800, '#E8923C', 300, 'center', panel),
+    { kind: 'usagechart', x: 195, y: 575, w: 300, h: 240, radius: 0, bg: '#151516', cell: '#3A3A3C', accent: '#E8923C', color: INK_ON_DARK, days: '00,12,00', dates: '4.5,1.5,0.2,1,0.2,0.2,0.2,1.6,1.6,6,9.2,4.2,4.2,5.6,2.8,4.2,4.8,6.2,8.6,7,5.8,9.8,10,6.2', unit: '', yMax: 10, activeIndex: 22, rotation: 0, scale: 1, groupId: panel },
+    TX(195, 740, 'That hour deserves a rule.', 12, 500, MUTED_ON_DARK, 300, 'center', panel),
+    ...HEAD('TYPICAL DAY', '[Know] your\npatterns', 'Norte finds the hour you reach for your phone most.'),
+  ];
+}
+
+/** "Your focus — 65h" — total protected time, this-week stats and the weekly bars. */
+export function norteProtectElements(): RawEl[] {
+  const card = 'norte-protect-card';
+  return [
+    PHONE(520, 270, 600, false),
+    TX(195, 296, 'Focus', 15, 800, '#1A1A1A', 200),
+    PLUS('#E8923C', '#1A1A1A'),
+    { kind: 'shape', shapeType: 'rect', x: 195, y: 486, w: 240, h: 296, radius: 18, bg: '#1A1A1A', opacity: 1, rotation: 0, scale: 1, groupId: card },
+    K(195, 362, 'YOUR FOCUS', MUTED_ON_DARK, 208, 'left', 8.5, card),
+    TX(195, 402, '65h', 40, 800, INK_ON_DARK, 208, 'left', card),
+    TX(195, 440, 'Total time your blocks were on', 10, 500, MUTED_ON_DARK, 208, 'left', card),
+    // stat chips, as in the app's "Your focus" card
+    { kind: 'shape', shapeType: 'rect', x: 140, y: 478, w: 98, h: 46, radius: 12, bg: DARK_CHIP, opacity: 1, rotation: 0, scale: 1, groupId: card },
+    K(142, 468, 'BOOKED THIS WEEK', MUTED_ON_DARK, 84, 'left', 6.5, card),
+    TX(142, 486, '40h', 15, 800, INK_ON_DARK, 84, 'left', card),
+    { kind: 'shape', shapeType: 'rect', x: 250, y: 478, w: 98, h: 46, radius: 12, bg: DARK_CHIP, opacity: 1, rotation: 0, scale: 1, groupId: card },
+    K(252, 468, 'DAY STREAK', MUTED_ON_DARK, 84, 'left', 6.5, card),
+    TX(252, 486, '🔥 7 days', 14, 800, INK_ON_DARK, 84, 'left', card),
+    { kind: 'usagechart', x: 195, y: 568, w: 208, h: 108, radius: 0, bg: '#1A1A1A', cell: '#3A3A3C', accent: '#E8923C', color: INK_ON_DARK, days: 'M,T,W,T,F,S,S', dates: '2,11,11,8,12,1,19', unit: 'h', yMax: 19, activeIndex: 6, rotation: 0, scale: 1, groupId: card },
+    { kind: 'button', x: 195, y: 690, text: 'Unblock apps', showArrow: true, bg: '#6B6B6B', color: '#FFFFFF', fontSize: 11, radius: 18, h: 36, rotation: 0, scale: 1 },
+    { kind: 'tabbar', x: 195, y: 778, w: 226, h: 50, radius: 25, days: 'Today,Year,Focus,Profile', icon: 'moon,rings,target,user', activeIndex: 2, bg: 'rgba(74,73,70,0.92)', color: '#F4F2ED', accent: '#E8923C', rotation: 0, scale: 1 },
+    ...HEAD('YOUR RESULTS', '[Protect] your\nfocus', 'See how many hours your blocks kept for you.'),
+  ];
+}
+
+/** "Rules" — blocked-now apps, two rule cards and the weekly-report card. */
+export function norteRulesElements(): RawEl[] {
+  const report = 'norte-rules-report';
+  const ORANGE_INK = '#C96A1F';
+  return [
+    PHONE(520, 270, 600, false),
+    TX(195, 296, 'Focus', 15, 800, '#1A1A1A', 200),
+    PLUS('#E8923C', '#1A1A1A'),
+    K(195, 328, 'BLOCKED NOW', '#A8A49C', 208, 'left', 8.5),
+    { kind: 'app', icon: 'instagram', x: 118, y: 372, size: 54, radius: 13, framed: true, check: false, accent: '#E8923C', rotation: 0, scale: 1 },
+    { kind: 'app', icon: 'tiktok', x: 184, y: 372, size: 54, radius: 13, framed: true, check: false, accent: '#E8923C', rotation: 0, scale: 1 },
+    TX(118, 412, 'Unblock', 10, 700, ORANGE_INK, 60),
+    TX(184, 412, 'Unblock', 10, 700, ORANGE_INK, 60),
+    TX(195, 448, 'Rules', 18, 800, '#1A1A1A', 208, 'left'),
+    TX(195, 449, '+ New rule', 11, 700, ORANGE_INK, 208, 'right'),
+    { kind: 'rulecard', x: 137, y: 536, w: 112, h: 136, radius: 14, bg: '#F7F5F0', color: '#1A1A1A', accent: '#E8923C', icon: 'hourglass', check: true, cardTitle: 'Blocked now', text: 'Time Keeper', cardCaption: 'Block', apps: 'instagram,tiktok', rotation: 0, scale: 1 },
+    { kind: 'rulecard', x: 259, y: 536, w: 112, h: 136, radius: 14, bg: '#F7F5F0', color: '#1A1A1A', accent: '#E8923C', icon: 'calendar', check: false, cardTitle: 'Starts in 12h', text: 'Work Time', cardCaption: 'Block', apps: 'netflix', rotation: 0, scale: 1 },
+    { kind: 'shape', shapeType: 'rect', x: 195, y: 682, w: 208, h: 124, radius: 16, bg: '#1A1A1A', opacity: 1, rotation: 0, scale: 1, groupId: report },
+    K(195, 636, 'WEEKLY REPORT', MUTED_ON_DARK, 176, 'left', 8, report),
+    TX(195, 664, 'Your week in focus\nis ready', 13, 800, INK_ON_DARK, 176, 'left', report),
+    TX(195, 694, '65h protected. See where your time went.', 9, 500, MUTED_ON_DARK, 176, 'left', report),
+    { kind: 'button', x: 146, y: 724, text: 'Open report', showArrow: false, bg: '#F4F2ED', color: '#1A1A1A', fontSize: 9.5, radius: 12, h: 24, rotation: 0, scale: 1, groupId: report },
+    TX(226, 724, 'Not now', 9.5, 600, MUTED_ON_DARK, 50, 'center', report),
+    { kind: 'usagechart', x: 268, y: 664, w: 56, h: 44, radius: 0, bg: '#1A1A1A', cell: '#4A4A4C', accent: '#E8923C', color: INK_ON_DARK, days: '', dates: '1,3,4,4,3,1,6', unit: '', yMax: 6, activeIndex: 6, rotation: 0, scale: 1, groupId: report },
+    { kind: 'tabbar', x: 195, y: 778, w: 226, h: 50, radius: 25, days: 'Today,Year,Focus,Profile', icon: 'moon,rings,target,user', activeIndex: 2, bg: 'rgba(74,73,70,0.92)', color: '#F4F2ED', accent: '#E8923C', rotation: 0, scale: 1 },
+    ...HEAD('ALWAYS ON', '[Rules] that\nhold the line', "Set it once. Norte keeps it, even when you don't want to."),
+  ];
+}
+
+/** "Today — 4 / 10 kept" — date strip and habit rows with their history grids. */
+export function norteTodayElements(): RawEl[] {
+  const row = (y: number, emoji: string, name: string, meta: string, done: boolean): RawEl =>
+    ({ kind: 'habitrow', x: 195, y, w: 208, h: 54, radius: 14, bg: '#F7F5F0', color: '#1A1A1A', cell: '#1A1A1A', emoji, text: name, cardCaption: meta, check: done, cols: 7, rows: 5, fill: 0.3, rotation: 0, scale: 1 });
+  return [
+    PHONE(520, 270, 600, false),
+    PLUS('#1A1A1A', '#F4F2ED'),
+    TX(195, 322, 'Today', 26, 800, '#1A1A1A', 208, 'left'),
+    TX(195, 358, '<span style="color:#1a1a1a">4</span> / 10 kept', 24, 800, '#9b9890', 208, 'left'),
+    // datestrip renders w/n-wide cells plus 6px gaps → w 172 gives a 208-wide strip aligned with the column
+    { kind: 'datestrip', x: 195, y: 410, w: 172, days: 'M,T,W,T,F,S,S', dates: '14,15,16,17,18,19,20', activeIndex: 6, rotation: 0, scale: 1 },
+    K(195, 452, 'HABITS', '#A8A49C', 208, 'left', 8),
+    { kind: 'button', x: 282, y: 452, text: '+ NEW', showArrow: false, bg: '#FFFFFF', color: '#1A1A1A', fontSize: 7.5, radius: 10, h: 20, rotation: 0, scale: 1 },
+    row(498, '📚', 'Bible', '1D · 7%', true),
+    row(558, '💊', 'Vitamin D', '7D · 13%', true),
+    row(618, '🌿', 'Nature', '4D · 9%', false),
+    row(678, '🥛', 'Creatine', '5D · 11%', true),
+    { kind: 'tabbar', x: 195, y: 778, w: 226, h: 50, radius: 25, days: 'Today,Year,Focus,Profile', icon: 'moon,rings,target,user', activeIndex: 0, bg: 'rgba(74,73,70,0.92)', color: '#F4F2ED', accent: '#E8923C', rotation: 0, scale: 1 },
+    { kind: 'emoji', emoji: '📚', tile: true, check: true, size: 54, x: 42, y: 300, rotation: -10, scale: 1 },
+    { kind: 'emoji', emoji: '🥛', tile: true, check: true, size: 50, x: 352, y: 640, rotation: 8, scale: 1 },
+    ...HEAD('DAILY CHECK-IN', '[Habits] and focus,\ntogether', 'Check in daily, keep streaks, protect your time.'),
+  ];
+}
+
+const story = (role: RecipeRole, title: string, elements: RawEl[]): StarterKitSlide => ({ role, template: 'hero', title, noChrome: true, elements });
+const NORTE_DISTRACTIONS = story('use-case', 'Find your distractions', norteDistractionsElements());
+const NORTE_PATTERNS = story('differentiator', 'Know your patterns', nortePatternsElements());
+const NORTE_PROTECT = story('secondary', 'Protect your focus', norteProtectElements());
+const NORTE_RULES = story('secondary', 'Rules that hold the line', norteRulesElements());
+const NORTE_TODAY = story('secondary', 'Habits and focus, together', norteTodayElements());
+
+/**
+ * The 10-screen focus story (Apple shows at most 10 per locale), ordered as a
+ * conversion arc: hook (cover) → promise (blocked moment) → insight (distractions,
+ * typical day) → mechanism (rules) → results (focus hours, screen time) → breadth
+ * (habits) → trust (privacy, from the main template) → proof + CTA (reviews).
+ * A function because the privacy screen comes from NORTE_V2_SLIDES, declared further down.
+ */
+const norteFocusStory = (): StarterKitSlide[] => [
+  NORTE_COVER, NORTE_BLOCKED, NORTE_DISTRACTIONS, NORTE_PATTERNS, NORTE_RULES,
+  NORTE_PROTECT, NORTE_SCREEN_TIME, NORTE_TODAY,
+  // the main template's privacy screen, with the story's kicker on top
+  { ...NORTE_V2_SLIDES[4], role: 'differentiator', elements: [...(NORTE_V2_SLIDES[4].elements || []), K(195, 36, 'PRIVACY', '#6f6c66')] },
+  NORTE_REVIEWS_SLIDE,
+];
+
 /** Each Norte screen, extracted faithfully from the source HTML then upgraded to use the reusable components. */
 const NORTE_COMPONENTS_SLIDES: StarterKitSlide[] = NORTE_SCREENS.map((elements, i) => ({
   role: NORTE_ROLES[i] || 'secondary',
@@ -285,6 +636,16 @@ const NORTE_V2_SLIDES: StarterKitSlide[] = NORTE_SCREENS.map((elements, i) => ({
 
 export const STARTER_KITS: StarterKit[] = [
   {
+    id: 'norte-focus',
+    name: 'Norte · Focus story',
+    tagline: 'Blocking, patterns, focus hours, rules, habits — 10 screens',
+    swatch: '#E8923C',
+    background: { type: 'solid', solidColor: '#EDEBE5' },
+    title: { fontFamily: 'Archivo', fontSize: 38, fontWeight: 800, color: '#111111', subtitleColor: '#6B6B6B', subtitleFontSize: 17, alignment: 'center' },
+    device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 84 },
+    slides: norteFocusStory(),
+  },
+  {
     id: 'norte-components-v2',
     name: 'Norte · Components v2',
     tagline: 'Refined — notification + widgets, full component set',
@@ -292,7 +653,7 @@ export const STARTER_KITS: StarterKit[] = [
     background: { type: 'solid', solidColor: '#EDEBE5' },
     title: { fontFamily: 'Archivo', fontSize: 38, fontWeight: 800, color: '#111111', subtitleColor: '#6B6B6B', subtitleFontSize: 17, alignment: 'center' },
     device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 84 },
-    slides: NORTE_V2_SLIDES,
+    slides: [NORTE_COVER, NORTE_BLOCKED, NORTE_SCREEN_TIME, ...withReviewsBeforeCta(NORTE_V2_SLIDES)],
   },
   {
     id: 'norte-components',
@@ -302,7 +663,7 @@ export const STARTER_KITS: StarterKit[] = [
     background: { type: 'solid', solidColor: '#EDEBE5' },
     title: { fontFamily: 'Archivo', fontSize: 38, fontWeight: 800, color: '#111111', subtitleColor: '#6B6B6B', subtitleFontSize: 17, alignment: 'center' },
     device: { frameType: 'iphone-15', frameStyle: 'real-light', scale: 84 },
-    slides: NORTE_COMPONENTS_SLIDES,
+    slides: [NORTE_COVER, NORTE_BLOCKED, NORTE_SCREEN_TIME, ...withReviewsBeforeCta(NORTE_COMPONENTS_SLIDES)],
   },
   {
     id: 'norte-designs',

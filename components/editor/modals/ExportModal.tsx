@@ -33,23 +33,29 @@ export default function ExportModal({ open, onClose }: Props) {
 
   const sandboxRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const required = DEVICE_SIZES.filter((d) => d.required && (platform === 'both' || d.platform === platform)).map((d) => d.id);
-    setSelectedDevices(required);
-    setSelectedLangs(enabledLanguages);
-  }, [open, platform, enabledLanguages]);
-
   const visibleDevices = useMemo(() => {
     if (platform === 'both') return DEVICE_SIZES;
     return DEVICE_SIZES.filter((d) => d.platform === platform);
   }, [platform]);
+
+  useEffect(() => {
+    if (!open) return;
+    // Default to ALL phone types and ALL languages — that's what stores need.
+    setSelectedDevices(visibleDevices.map((d) => d.id));
+    setSelectedLangs(enabledLanguages);
+  }, [open, platform, enabledLanguages, visibleDevices]);
 
   const grouped = useMemo(() => {
     const ios = visibleDevices.filter((d) => d.platform === 'ios');
     const android = visibleDevices.filter((d) => d.platform === 'android');
     return { ios, android };
   }, [visibleDevices]);
+
+  const enabledLangList = useMemo(() => LANGUAGES.filter((l) => enabledLanguages.includes(l.code)), [enabledLanguages]);
+  const totalImages = selectedDevices.length * selectedLangs.length * slides.length;
+
+  const setDeviceGroup = (ids: string[], on: boolean) =>
+    setSelectedDevices((prev) => (on ? Array.from(new Set([...prev, ...ids])) : prev.filter((x) => !ids.includes(x))));
 
   const toggleDevice = (id: string) => {
     setSelectedDevices((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -187,7 +193,13 @@ export default function ExportModal({ open, onClose }: Props) {
           })()}
           {grouped.ios.length > 0 && (
             <div>
-              <div className="section-label mb-2">iOS — App Store</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="section-label">iOS — App Store ({grouped.ios.filter((d) => selectedDevices.includes(d.id)).length}/{grouped.ios.length})</div>
+                <div className="flex gap-1.5">
+                  <button onClick={() => setDeviceGroup(grouped.ios.map((d) => d.id), true)} className="text-[11px] px-2 py-0.5 rounded bg-muted border border-border-default text-secondary hover:bg-overlay">All</button>
+                  <button onClick={() => setDeviceGroup(grouped.ios.map((d) => d.id), false)} className="text-[11px] px-2 py-0.5 rounded bg-muted border border-border-default text-secondary hover:bg-overlay">None</button>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {grouped.ios.map((d) => (
                   <DeviceCheckbox
@@ -204,7 +216,13 @@ export default function ExportModal({ open, onClose }: Props) {
           )}
           {grouped.android.length > 0 && (
             <div>
-              <div className="section-label mb-2">Android — Google Play</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="section-label">Android — Google Play ({grouped.android.filter((d) => selectedDevices.includes(d.id)).length}/{grouped.android.length})</div>
+                <div className="flex gap-1.5">
+                  <button onClick={() => setDeviceGroup(grouped.android.map((d) => d.id), true)} className="text-[11px] px-2 py-0.5 rounded bg-muted border border-border-default text-secondary hover:bg-overlay">All</button>
+                  <button onClick={() => setDeviceGroup(grouped.android.map((d) => d.id), false)} className="text-[11px] px-2 py-0.5 rounded bg-muted border border-border-default text-secondary hover:bg-overlay">None</button>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {grouped.android.map((d) => (
                   <DeviceCheckbox
@@ -221,20 +239,28 @@ export default function ExportModal({ open, onClose }: Props) {
           )}
 
           <div>
-            <div className="section-label mb-2">Languages</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="section-label">Languages ({selectedLangs.length}/{enabledLangList.length})</div>
+              <div className="flex gap-1.5">
+                <button onClick={() => setSelectedLangs(enabledLangList.map((l) => l.code))} className="text-[11px] px-2 py-0.5 rounded bg-muted border border-border-default text-secondary hover:bg-overlay">All</button>
+                <button onClick={() => setSelectedLangs([])} className="text-[11px] px-2 py-0.5 rounded bg-muted border border-border-default text-secondary hover:bg-overlay">None</button>
+              </div>
+            </div>
             <div className="flex flex-wrap gap-1.5">
-              {LANGUAGES.filter((l) => enabledLanguages.includes(l.code)).map((l) => (
+              {enabledLangList.map((l) => (
                 <label
                   key={l.code}
-                  className={`px-2.5 py-1.5 rounded-md text-xs font-medium border cursor-pointer ${
+                  title={`${l.name} · ${l.code}`}
+                  className={`px-2.5 py-1.5 rounded-md text-xs font-medium border cursor-pointer flex items-center gap-1.5 ${
                     selectedLangs.includes(l.code)
                       ? 'bg-norte-primary-light border-norte-primary text-norte-primary'
                       : 'bg-muted border-border-default text-secondary hover:bg-overlay'
                   }`}
                 >
                   <input type="checkbox" className="sr-only" checked={selectedLangs.includes(l.code)} onChange={() => toggleLang(l.code)} />
-                  {selectedLangs.includes(l.code) ? '✓ ' : ''}
-                  {l.label}
+                  {selectedLangs.includes(l.code) ? '✓' : ''}
+                  {l.display}
+                  <span className="text-[9px] font-mono opacity-50">{l.code}</span>
                 </label>
               ))}
             </div>
@@ -265,6 +291,14 @@ export default function ExportModal({ open, onClose }: Props) {
               )}
             </div>
           </div>
+
+          {!exporting && (
+            <div className="text-xs text-secondary bg-overlay border border-border-default rounded-md px-3 py-2">
+              <span className="font-semibold text-primary">{totalImages}</span> image{totalImages !== 1 ? 's' : ''} —{' '}
+              {selectedDevices.length} device size{selectedDevices.length !== 1 ? 's' : ''} × {selectedLangs.length} language{selectedLangs.length !== 1 ? 's' : ''} × {slides.length} screen{slides.length !== 1 ? 's' : ''}.
+              Foldered by language → store → device for direct upload.
+            </div>
+          )}
 
           {exporting && progress && (
             <div className="bg-overlay border border-border-default rounded-md p-3 space-y-2">

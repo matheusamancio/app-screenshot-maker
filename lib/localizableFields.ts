@@ -36,6 +36,8 @@ const KIND_SHORT: Record<string, string> = {
   streak: 'Streak', notification: 'Notification', widget: 'Widget', barchart: 'Bar chart',
   linechart: 'Line chart', habitrow: 'Habit', heatmap: 'Heatmap', card: 'Card',
   datestrip: 'Dates', laurel: 'Laurel', button: 'Button', shape: 'Shape', icon: 'Icon', phone: 'Phone',
+  segmented: 'Segmented', statrow: 'Stats', usagechart: 'Usage', approw: 'App row', review: 'Review',
+  appstrip: 'App strip', rulecard: 'Rule', tabbar: 'Tab bar',
 };
 
 /** Top-level text fields per element kind: [path, friendly name]. */
@@ -47,13 +49,21 @@ const SIMPLE: Record<string, [string, string][]> = {
   barchart: [['toggleLeft', 'toggle L'], ['toggleRight', 'toggle R'], ['days', 'labels'], ['dates', 'numbers']],
   linechart: [['days', 'labels'], ['cardCaption', 'caption']],
   habitrow: [['text', 'name'], ['cardCaption', 'meta']],
-  heatmap: [['cardTitle', 'title'], ['cardValue', 'value'], ['cardCaption', 'caption']],
+  heatmap: [['cardTitle', 'title'], ['cardValue', 'value'], ['cardCaption', 'caption'], ['text', 'today label']],
   card: [['cardTitle', 'label'], ['cardValue', 'value'], ['cardCaption', 'caption']],
   datestrip: [['days', 'days'], ['dates', 'numbers']],
   laurel: [['cardValue', 'value'], ['cardCaption', 'caption']],
   shape: [['text', 'label']],
   icon: [['text', 'label']],
   phone: [['text', 'status time'], ['cardTitle', 'app name']],
+  segmented: [['days', 'labels']],
+  statrow: [['dates', 'values'], ['days', 'labels']],
+  usagechart: [['days', 'labels'], ['dates', 'values'], ['yTicks', 'axis'], ['unit', 'unit']],
+  approw: [['text', 'app'], ['cardValue', 'time'], ['cardCaption', 'meta']],
+  review: [['text', 'quote'], ['cardTitle', 'author']],
+  appstrip: [['dates', 'captions']],
+  rulecard: [['cardTitle', 'status'], ['text', 'name'], ['cardCaption', 'label']],
+  tabbar: [['days', 'labels']],
 };
 
 /** Every translatable text path on one element, with a friendly label. */

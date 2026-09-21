@@ -87,7 +87,15 @@ export default function TemplateRenderer({
   const titleText = loc?.title || slide.title.text;
   const subtitleText = loc?.subtitle || slide.title.subtitle;
   const rtl = isRtl(language);
-  const sf = width / 390;
+  // Elements are authored in a 390×844 logical phone canvas. Scale to FIT the
+  // target device (contain), not just by width — otherwise a squarer device
+  // (iPad, some Android sizes) runs the tall layout off the bottom. Then centre
+  // the design box so the leftover space becomes symmetric background margin.
+  const BASE_W = 390;
+  const BASE_H = 844;
+  const sf = Math.min(width / BASE_W, height / BASE_H);
+  const offsetX = (width - BASE_W * sf) / 2;
+  const offsetY = (height - BASE_H * sf) / 2;
 
   const common: TemplateRenderProps = {
     screenshot: slide.screenshot,
@@ -118,6 +126,8 @@ export default function TemplateRenderer({
       <ElementsLayer
         elements={slide.elements}
         sf={sf}
+        offsetX={offsetX}
+        offsetY={offsetY}
         language={language}
         fontFamily={fontFamilyOverride || slide.title.fontFamily}
         onSelect={onElementSelect}

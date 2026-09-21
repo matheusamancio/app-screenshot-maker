@@ -1,8 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { DEVICE_SIZES } from '@/lib/deviceSizes';
+import { LANGUAGES, isBaseLanguage } from '@/lib/presets';
+import type { Language } from '@/types';
 import Dropdown from '../ui/Dropdown';
 
 interface Props {
@@ -21,6 +23,9 @@ export default function TopNav({ onOpenGlobals, onOpenSetup, onOpenLocalize, onO
   const previewDeviceId = useProjectStore((s) => s.previewDeviceId);
   const setPreviewDevice = useProjectStore((s) => s.setPreviewDevice);
   const projectName = useProjectStore((s) => s.name);
+  const enabledLanguages = useProjectStore((s) => s.enabledLanguages);
+  const activeLanguage = useProjectStore((s) => s.activeLanguage);
+  const setActiveLanguage = useProjectStore((s) => s.setActiveLanguage);
 
   const deviceOptions = DEVICE_SIZES.map((d) => ({
     value: d.id,
@@ -103,6 +108,14 @@ export default function TopNav({ onOpenGlobals, onOpenSetup, onOpenLocalize, onO
 
         <div className="h-6 w-px bg-border-default mx-1" />
 
+        <LanguageSwitcher
+          languages={LANGUAGES.filter((l) => enabledLanguages.includes(l.code))}
+          active={activeLanguage}
+          onPick={setActiveLanguage}
+        />
+
+        <div className="h-6 w-px bg-border-default mx-1" />
+
         <div className="text-[11px] text-text-muted font-medium uppercase tracking-wide">Preview</div>
         <div className="w-56">
           <Dropdown value={previewDeviceId} onChange={setPreviewDevice} options={deviceOptions} />
@@ -116,6 +129,64 @@ export default function TopNav({ onOpenGlobals, onOpenSetup, onOpenLocalize, onO
         </button>
       </div>
     </header>
+  );
+}
+
+function LanguageSwitcher({
+  languages,
+  active,
+  onPick,
+}: {
+  languages: { code: Language; label: string; name: string; rtl?: boolean }[];
+  active: Language;
+  onPick: (code: Language) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, []);
+  const current = languages.find((l) => l.code === active) || languages[0];
+  const isBase = !active || isBaseLanguage(active);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title="Switch the language shown on the canvas (edit in this language)"
+        className={`h-9 px-2.5 rounded-md flex items-center gap-1.5 text-sm font-sora font-semibold border transition-all ${
+          isBase ? 'bg-muted border-border-default text-secondary hover:bg-overlay' : 'bg-norte-primary-light border-norte-primary text-norte-primary'
+        }`}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18" />
+        </svg>
+        {current ? `${isBaseLanguage(current.code) ? '★ ' : ''}${current.label}` : 'Language'}
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-1 w-60 max-h-[60vh] overflow-y-auto bg-surface border border-border-default rounded-lg shadow-canvas py-1 z-[200] fade-in">
+          {languages.map((l) => {
+            const sel = l.code === active;
+            return (
+              <button
+                key={l.code}
+                onClick={() => { onPick(l.code); setOpen(false); }}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-[13px] ${sel ? 'bg-norte-primary-light text-norte-primary' : 'text-secondary hover:bg-overlay'}`}
+              >
+                <span className="w-14 shrink-0 font-mono text-[11px] font-semibold">{isBaseLanguage(l.code) ? '★' : ''}{l.label}</span>
+                <span className="flex-1 min-w-0 truncate">{l.name}{l.rtl ? ' · RTL' : ''}</span>
+                {sel && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
