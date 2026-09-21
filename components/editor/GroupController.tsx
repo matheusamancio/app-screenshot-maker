@@ -17,12 +17,14 @@ interface Props {
   onDelete: () => void;
   /** Bumped to force re-measure. */
   measureTick: number;
+  /** Double-click on the group box → start inline editing of the element under the cursor. */
+  onEditElement?: (id: string) => void;
 }
 
 type Box = { left: number; top: number; width: number; height: number };
 type Mode = 'move' | 'scale' | null;
 
-export default function GroupController({ canvasWrapperRef, stageRef, computedScale, scaleFactor, elements, onApply, onDelete, measureTick }: Props) {
+export default function GroupController({ canvasWrapperRef, stageRef, computedScale, scaleFactor, elements, onApply, onDelete, measureTick, onEditElement }: Props) {
   const [box, setBox] = useState<Box | null>(null);
   const drag = useRef<{
     mode: Mode;
@@ -125,6 +127,18 @@ export default function GroupController({ canvasWrapperRef, stageRef, computedSc
     <div style={{ position: 'absolute', left, top, width: w, height: h, pointerEvents: 'none', zIndex: 31 }}>
       <div
         onPointerDown={start('move')}
+        onDoubleClick={(e) => {
+          // The box covers the grouped elements, so forward a double-click to the
+          // element under the cursor (the wall tile / review card / text you aimed at).
+          if (!onEditElement) return;
+          e.stopPropagation();
+          e.preventDefault();
+          for (const n of document.elementsFromPoint(e.clientX, e.clientY)) {
+            const host = (n as HTMLElement).closest?.('[data-element^="el:"]') as HTMLElement | null;
+            const id = host?.getAttribute('data-element')?.slice(3);
+            if (id && elements.some((el) => el.id === id)) { onEditElement(id); return; }
+          }
+        }}
         style={{ position: 'absolute', inset: 0, border: '1.5px dashed var(--norte-primary)', borderRadius: 6, background: 'rgba(91,95,237,0.05)', cursor: 'move', pointerEvents: 'auto', touchAction: 'none' }}
       />
       <div style={{ position: 'absolute', top: -22, left: 0, background: 'var(--norte-primary)', color: 'white', fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, fontFamily: 'var(--font-archivo), sans-serif', whiteSpace: 'nowrap' }}>

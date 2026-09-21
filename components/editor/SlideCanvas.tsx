@@ -486,6 +486,11 @@ export default function SlideCanvas({ slide, width, active, onActivate, language
             measureTick={measureTick}
             onApply={(patches) => applyElementPatches(slide.id, patches)}
             onDelete={() => deleteSelectedElements(slide.id)}
+            onEditElement={(id) => {
+              activate();
+              setSelected(null);
+              setEditingElementId(id);
+            }}
           />
         </div>
       )}
